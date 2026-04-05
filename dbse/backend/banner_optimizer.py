@@ -32,6 +32,8 @@ class BannerOptimizationSettings:
         (970, 250),
         (120, 600),
         (160, 600),
+        (250, 250),
+        (320, 100),
     )
     max_output_bytes: int = 150 * 1024
     jpeg_quality_min: int = 20
@@ -57,31 +59,33 @@ class OptimizationResult:
 
 
 def resolve_target_dimensions(size: tuple[int, int]) -> tuple[int, int] | None:
-    """Resolve a banner size to a supported target or a smaller exact multiple target."""
+    """Resolve a banner size to a supported target or a larger proportional version of one."""
 
     width, height = size
     matches: list[tuple[int, int, tuple[int, int]]] = []
 
     for target_width, target_height in OPTIMIZATION_SETTINGS.supported_dimensions:
+        # Exact match
         if (width, height) == (target_width, target_height):
-            matches.append((1, target_width * target_height, (target_width, target_height)))
+            return (target_width, target_height)
+
+        # Only downscale; do not upscale smaller images
+        if width < target_width or height < target_height:
             continue
 
-        if width % target_width != 0 or height % target_height != 0:
+        # Same aspect ratio check:
+        # 450x375 matches 300x250 because 450 * 250 == 375 * 300
+        if width * target_height != height * target_width:
             continue
 
-        width_factor = width // target_width
-        height_factor = height // target_height
-        if width_factor == height_factor and width_factor > 1:
-            matches.append(
-                (width_factor, target_width * target_height, (target_width, target_height))
-            )
+        # Prefer the largest valid target area, so an image maps to the
+        # most specific supported size rather than an unnecessarily small one
+        matches.append((target_width * target_height, max(width // target_width, height // target_height), (target_width, target_height)))
 
     if not matches:
         return None
 
-    scale_factor, _, target = max(matches, key=lambda item: (item[0], -item[1]))
-    return target if scale_factor >= 1 else None
+    return max(matches, key=lambda item: item[0])[2]
 
 
 def _has_alpha(image: Image.Image) -> bool:
