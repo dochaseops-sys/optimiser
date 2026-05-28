@@ -258,6 +258,8 @@ def test_frontend_route_serves_the_ui() -> None:
     assert "text/html" in response.headers["content-type"]
     assert "DBSE" in response.text
     assert "Optimize Banners" in response.text
+    assert "Adapt Creatives" in response.text
+    assert "Output Preview" in response.text
 
 
 def test_optimiser_route_serves_the_ui() -> None:
@@ -270,3 +272,77 @@ def test_optimiser_route_serves_the_ui() -> None:
         assert "text/html" in response.headers["content-type"]
         assert "DBSE" in response.text
         assert "Optimize Banners" in response.text
+        assert "Adapt Creatives" in response.text
+        assert "Output Preview" in response.text
+
+
+def test_process_endpoint_accepts_zip_file() -> None:
+    client = TestClient(app)
+    banner_one = _make_image_bytes((1200, 400))
+    banner_two = _make_image_bytes((900, 300))
+    
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zf:
+        zf.writestr("banner-1.png", banner_one)
+        zf.writestr("banner-2.png", banner_two)
+        zf.writestr("__MACOSX/._banner-1.png", b"junk")
+        zf.writestr("readme.txt", b"not an image")
+    zip_bytes = zip_buffer.getvalue()
+    
+    logo = _make_image_bytes((240, 120), color=(255, 0, 0, 255))
+    
+    response = client.post(
+        "/process",
+        data={"placement_mode": "smart"},
+        files=[
+            ("banners", ("banners.zip", zip_bytes, "application/zip")),
+            ("logo", ("logo.png", logo, "image/png")),
+        ],
+    )
+    
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    names = sorted(archive.namelist())
+    assert "banner-1_processed.png" in names
+    assert "banner-2_processed.png" in names
+    assert len(names) == 2
+
+
+def test_process_endpoint_uses_custom_name_for_single_file() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/process",
+        data={"placement_mode": "top-left", "custom_name": "my-special-banner"},
+        files=[
+            ("banners", ("banner.png", _make_image_bytes((1200, 400)), "image/png")),
+            ("logo", ("logo.png", _make_image_bytes((240, 120), color=(255, 0, 0, 255)), "image/png")),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert 'filename="my-special-banner.png"' in response.headers["content-disposition"]
+
+
+def test_process_endpoint_uses_custom_name_for_zip() -> None:
+    client = TestClient(app)
+    banner_one = _make_image_bytes((1200, 400))
+    banner_two = _make_image_bytes((900, 300))
+    logo = _make_image_bytes((240, 120), color=(255, 0, 0, 255))
+
+    response = client.post(
+        "/process",
+        data={"placement_mode": "smart", "custom_name": "my-campaign-folder"},
+        files=[
+            ("banners", ("banner-1.png", banner_one, "image/png")),
+            ("banners", ("banner-2.png", banner_two, "image/png")),
+            ("logo", ("logo.png", logo, "image/png")),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert 'filename="my-campaign-folder.zip"' in response.headers["content-disposition"]
+

@@ -6,294 +6,252 @@
   <meta name="dbse-api-base" content="">
   <title>Dochase Banner Workflows</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     :root {
-      color-scheme: light;
-      --bg: #f7f6f3;
-      --panel: #ffffff;
-      --panel-soft: #fbfaf8;
-      --text: #171717;
-      --muted: #686868;
-      --border: #e7e2da;
-      --accent: #e57a1f;
-      --accent-dark: #9b4e10;
-      --accent-soft: #fff0df;
-      --shadow: 0 14px 40px rgba(17, 17, 17, 0.06);
-      --radius: 22px;
-      --radius-sm: 16px;
-      --max: 1120px;
+      color-scheme: dark;
+      --page: #1e1e1e; /* Figma Canvas */
+      --surface: #2c2c2c; /* Figma Sidebar */
+      --surface-soft: #333333;
+      --surface-hover: #3d3d3d;
+      --text: #ffffff;
+      --muted: #b3b3b3;
+      --border: #3c3c3c;
+      --border-strong: #444444;
+      --accent: #18a0fb; /* Figma blue selection color */
+      --accent-strong: #0c8ce9;
+      --accent-soft: rgba(24, 160, 251, 0.15);
+      --purple: #a259ff; /* Figma purple */
+      --success: #0acf83; /* Figma green */
+      --danger: #f24e1e; /* Figma red/orange */
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      --radius: 6px;
+      --max: 1440px;
     }
 
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) var(--surface);
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--surface-hover);
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--page);
+    }
+    
     body {
       margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at top right, rgba(229, 122, 31, 0.08), transparent 28%),
-        radial-gradient(circle at left bottom, rgba(229, 122, 31, 0.05), transparent 26%),
-        var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    .page {
-      width: min(var(--max), calc(100% - 28px));
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      touch-action: manipulation;
+    }
+
+    .app {
+      width: min(var(--max), calc(100% - 24px));
       margin: 0 auto;
-      padding: 28px 0 40px;
+      padding: 20px 0 40px;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(290px, 0.9fr);
-      gap: 20px;
-      align-items: stretch;
-      margin-bottom: 18px;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.86);
-      border: 1px solid rgba(229, 122, 31, 0.14);
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 12px 20px;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
     }
 
-    .intro {
-      padding: 28px;
-      min-height: 100%;
+    .brand {
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 14px;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
     }
 
-    .eyebrow {
-      display: inline-flex;
-      align-self: flex-start;
-      padding: 7px 11px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-dark);
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .brand-mark {
+      width: 44px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 4px;
+      background: var(--purple);
+      color: white;
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+      flex: 0 0 auto;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(2.1rem, 4vw, 4rem);
-      line-height: 0.96;
-      letter-spacing: -0.05em;
-      max-width: 10ch;
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.1px;
     }
 
-    .lead {
-      margin: 0;
-      max-width: 60ch;
+    .subtitle {
+      margin: 2px 0 0;
       color: var(--muted);
-      font-size: 1rem;
-      line-height: 1.65;
+      font-size: 0.78rem;
     }
 
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .pill {
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--panel-soft);
-      color: #303030;
-      font-size: 0.9rem;
-    }
-
-    .preview {
-      padding: 18px;
+    .shell {
       display: grid;
-      gap: 12px;
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,247,244,0.9));
-    }
-
-    .illus-copy {
-      color: var(--muted);
-      font-size: 0.84rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .preview-stage {
-      position: relative;
-      min-height: 340px;
-      border-radius: 22px;
-      border: 1px solid var(--border);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.95), rgba(246,242,236,0.9)),
-        radial-gradient(circle at top right, rgba(17,17,17,0.04), transparent 28%),
-        radial-gradient(circle at bottom left, rgba(17,17,17,0.03), transparent 26%);
-      padding: 18px;
-      display: grid;
-      align-content: center;
-      gap: 12px;
-    }
-
-    .preview-stage::before {
-      content: "";
-      position: absolute;
-      inset: 18px;
-      border-radius: 18px;
-      background-image:
-        linear-gradient(rgba(17, 17, 17, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(17, 17, 17, 0.03) 1px, transparent 1px);
-      background-size: 24px 24px;
-      opacity: 0.45;
-      pointer-events: none;
-    }
-
-    .preview-stage > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .preview-tile {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.92);
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 24px rgba(17,17,17,0.04);
-    }
-
-    .preview-tile strong {
-      display: block;
-      font-size: 0.98rem;
-      margin-bottom: 4px;
-    }
-
-    .preview-tile span {
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.45;
-    }
-
-    .preview-pill {
-      flex: 0 0 auto;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: #fff0df;
-      color: var(--accent-dark);
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-
-    .preview-arrow {
-      display: flex;
-      justify-content: center;
-      color: var(--muted);
-      font-size: 0.84rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .preview-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .preview-meta strong {
-      color: var(--text);
-      font-size: 0.92rem;
-    }
-
-    .main {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(290px, 0.85fr);
-      gap: 18px;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 16px;
       align-items: start;
     }
 
     .panel {
-      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
     }
 
-    .stack {
+    .control-panel {
       display: grid;
-      gap: 14px;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .work-area {
+      display: grid;
+      gap: 16px;
     }
 
     .section {
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.75);
+      display: grid;
+      gap: 12px;
+    }
+
+    .section + .section {
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
     }
 
     .section-head {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
-      align-items: baseline;
-      margin-bottom: 12px;
     }
 
-    .section-head h2,
-    .sidebar h2 {
+    .section h2,
+    .preview-head h2,
+    .side-section h2 {
       margin: 0;
-      font-size: 1rem;
-      letter-spacing: -0.02em;
-    }
-
-    .section-head p,
-    .sidebar p {
-      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.5;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--page);
+    }
+
+    .mode-btn {
+      appearance: none;
+      min-height: 32px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px;
+      font-weight: 500;
+      font-size: 0.78rem;
+      line-height: 1.2;
+      text-align: center;
+      transition: all 120ms ease;
+    }
+
+    .mode-btn.is-active {
+      background: var(--surface-soft);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .mode-btn:hover:not(.is-active):not(:disabled) {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .dropzone {
       position: relative;
-      min-height: 140px;
+      min-height: 100px;
       display: grid;
-      gap: 8px;
       place-items: center;
+      gap: 6px;
+      padding: 20px;
       text-align: center;
-      padding: 18px;
-      border-radius: 18px;
-      border: 1.5px dashed #cfc8be;
-      background: #fcfbf9;
-      transition: 160ms ease;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: var(--page);
+      transition: all 120ms ease;
     }
 
     .dropzone.is-dragover {
       border-color: var(--accent);
-      background: #f6f5f2;
-      transform: translateY(-1px);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
     .dropzone strong {
       display: block;
-      margin-bottom: 4px;
-      font-size: 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
     }
 
     .dropzone span {
-      display: block;
       color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.45;
+      font-size: 0.72rem;
     }
 
     input[type="file"] {
@@ -303,126 +261,45 @@
       cursor: pointer;
     }
 
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .mode-switch {
+    .file-list,
+    .target-list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 6px;
     }
 
-    .mode-btn {
-      appearance: none;
-      width: 100%;
-      border: 1px solid var(--border);
-      background: #fcfbf9;
-      color: var(--text);
-      text-align: left;
-      padding: 14px 16px;
-      border-radius: 16px;
-      cursor: pointer;
-      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-      font: inherit;
-    }
-
-    .mode-btn strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 0.96rem;
-    }
-
-    .mode-btn span {
-      display: block;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.45;
-    }
-
-    .mode-btn.is-active {
-      border-color: rgba(229, 122, 31, 0.45);
-      background: #fff7ef;
-      box-shadow: 0 10px 22px rgba(229, 122, 31, 0.08);
-    }
-
-    .mode-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    .btn,
-    .btn-secondary,
-    .btn-ghost {
-      appearance: none;
-      border: 0;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 700;
-      border-radius: 14px;
-      padding: 12px 16px;
-      transition: transform 150ms ease, opacity 150ms ease, background 150ms ease;
-    }
-
-    .btn:disabled,
-    .btn-secondary:disabled,
-    .btn-ghost:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
-    .btn {
-      color: white;
-      background: linear-gradient(135deg, var(--accent), #f0a24a);
-      box-shadow: 0 10px 22px rgba(229, 122, 31, 0.22);
-    }
-
-    .btn-secondary {
-      color: var(--text);
-      background: #f3f0eb;
-      border: 1px solid var(--border);
-    }
-
-    .btn-ghost {
-      color: var(--muted);
-      background: transparent;
-      border: 1px solid var(--border);
-    }
-
-    .btn:hover:not(:disabled),
-    .btn-secondary:hover:not(:disabled),
-    .btn-ghost:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    .file-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .file-item {
+    .file-item,
+    .target-item {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
       align-items: center;
-      padding: 12px 14px;
-      border-radius: 14px;
+      gap: 10px;
+      min-height: 36px;
+      padding: 6px 10px;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.9);
+      border-radius: var(--radius);
+      background: var(--page);
+      transition: all 120ms ease;
     }
 
-    .file-item strong {
+    .file-item:hover,
+    .target-item:hover {
+      border-color: var(--border-strong);
+    }
+
+    .file-item strong,
+    .target-item strong {
       display: block;
-      font-size: 0.95rem;
-      word-break: break-word;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text);
+      word-break: break-all;
     }
 
     .file-item small {
       display: block;
       color: var(--muted);
-      margin-top: 3px;
+      font-size: 0.7rem;
+      margin-top: 1px;
     }
 
     .field-grid {
@@ -430,19 +307,72 @@
       gap: 10px;
     }
 
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field-label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 500;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--page);
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      transition: all 120ms ease;
+    }
+    
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--page);
+      padding: 2px;
+      cursor: pointer;
+    }
+
     .radio-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .radio-card {
       position: relative;
-      padding: 13px 12px;
-      border-radius: 14px;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      padding: 6px;
       border: 1px solid var(--border);
-      background: #fcfbf9;
+      border-radius: var(--radius);
+      background: var(--page);
+      color: var(--muted);
       cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 500;
+      transition: all 120ms ease;
     }
 
     .radio-card input {
@@ -451,344 +381,441 @@
       opacity: 0;
       cursor: pointer;
     }
-
-    .radio-card .title {
-      display: block;
-      font-weight: 800;
-      margin-bottom: 5px;
-    }
-
-    .radio-card .desc {
-      display: block;
-      color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.45;
+    
+    .radio-card:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
     }
 
     .radio-card:has(input:checked) {
-      border-color: rgba(229, 122, 31, 0.45);
-      background: #fff7ef;
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
     }
 
-    .progress-wrap {
-      display: grid;
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
+
+    .btn,
+    .btn-secondary,
+    .btn-ghost {
+      appearance: none;
+      min-height: 34px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      transition: all 120ms ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .btn:hover:not(:disabled) {
+      background: var(--accent-strong);
+      border-color: var(--accent-strong);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: var(--surface-soft);
+      border-color: var(--border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+
+    .btn-ghost {
+      color: var(--muted);
+      background: transparent;
+      border-color: transparent;
+    }
+    
+    .btn-ghost:hover:not(:disabled) {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border);
+    }
+
+    .btn:disabled,
+    .btn-secondary:disabled,
+    .btn-ghost:disabled,
+    .mode-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .status-strip {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--page);
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.78rem;
+    }
+
+    .status[data-tone="success"] { color: var(--success); }
+    .status[data-tone="error"] { color: var(--danger); }
 
     .progress-meta {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 0.72rem;
     }
 
     .progress-bar {
-      position: relative;
-      height: 11px;
+      height: 6px;
       border-radius: 999px;
       overflow: hidden;
-      background: #ece7df;
+      background: var(--border);
     }
 
     .progress-fill {
       width: 0%;
       height: 100%;
+      background: var(--accent);
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--accent), #f0a24a);
       transition: width 150ms linear;
     }
 
-    .status {
-      margin: 0;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: #fcfbf9;
-      min-height: 50px;
-      line-height: 1.5;
-    }
-
-    .status[data-tone="error"] {
-      border-color: #f0c6bb;
-      background: #fff6f2;
-    }
-
-    .status[data-tone="success"] {
-      border-color: #cfe2d3;
-      background: #f4fbf5;
-    }
-
-    .sidebar {
+    .preview-panel {
       display: grid;
-      gap: 14px;
+      gap: 0;
+      overflow: hidden;
     }
 
-    .info-block {
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.8);
-    }
-
-    .steps {
-      display: grid;
-      gap: 10px;
-      margin: 10px 0 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .steps li {
+    .preview-head {
       display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      color: #303030;
-      line-height: 1.45;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
     }
 
-    .steps span {
-      display: inline-grid;
+    .preview-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      min-height: 480px;
+      background: var(--page);
+    }
+
+    .output-stage {
+      display: grid;
       place-items: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-dark);
-      font-size: 0.82rem;
-      font-weight: 800;
-      flex: 0 0 auto;
-      margin-top: 1px;
+      min-height: 480px;
+      padding: 24px;
+      background-color: #1e1e1e;
+      background-image:
+        linear-gradient(45deg, #282828 25%, transparent 25%),
+        linear-gradient(-45deg, #282828 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #282828 75%),
+        linear-gradient(-45deg, transparent 75%, #282828 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
     }
 
-    .quiet {
+    .output-stage img {
+      display: block;
+      max-width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border);
+    }
+
+    .empty {
+      width: min(100%, 360px);
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
       color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.55;
-      margin: 0;
+      text-align: center;
+      line-height: 1.5;
+      font-size: 0.8rem;
+      box-shadow: var(--shadow);
+    }
+
+    .side {
+      display: grid;
+      align-content: start;
+      gap: 0;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .side-section {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-grid {
+      display: grid;
+      gap: 6px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .summary-row strong {
+      color: var(--text);
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .snapshot {
+      display: grid;
+      gap: 6px;
+    }
+
+    .snapshot-row {
+      display: grid;
+      gap: 3px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--page);
+    }
+
+    .snapshot-row strong {
+      font-size: 0.76rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .snapshot-row span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      word-break: break-all;
     }
 
     [hidden] {
       display: none !important;
     }
 
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    svg {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    @media (max-width: 900px) {
-      .hero,
-      .main {
+    @media (max-width: 980px) {
+      .shell,
+      .preview-body {
         grid-template-columns: 1fr;
+      }
+
+      .side {
+        border-left: 0;
+        border-top: 1px solid var(--border);
       }
     }
 
     @media (max-width: 640px) {
-      .page {
-        width: min(var(--max), calc(100% - 18px));
-        padding: 18px 0 24px;
+      .app {
+        width: min(var(--max), calc(100% - 16px));
+        padding-top: 12px;
       }
 
-      .intro,
-      .panel,
-      .illustration {
-        padding: 18px;
+      .topbar,
+      .section-head,
+      .preview-head {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
       }
 
-      .radio-grid {
+      .segmented,
+      .radio-grid,
+      .two-col {
         grid-template-columns: 1fr;
       }
 
-      .mode-switch {
-        grid-template-columns: 1fr;
-      }
-
-      .button-row .btn,
-      .button-row .btn-secondary,
-      .button-row .btn-ghost,
-      .mode-btn {
-        width: 100%;
+      .button-row > * {
+        flex: 1 1 100%;
       }
     }
   </style>
 </head>
 <body>
-  <main class="page">
-    <section class="hero">
-      <div class="card intro">
-        <div class="eyebrow">DBSE</div>
-        <h1>Banner workflows, made simple.</h1>
-        <p class="lead" id="heroLead">
-          Add banner images, add a logo, choose where the logo should sit, and process the result.
-          A single banner downloads as an image, while multiple banners download as a ZIP.
-        </p>
-        <div class="pill-row" aria-hidden="true">
-          <span class="pill">Stamp banners</span>
-          <span class="pill">Optimize banners</span>
-          <span class="pill">Single image output</span>
-          <span class="pill">ZIP batch output</span>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">DBSE</div>
+        <div>
+          <h1>Dochase Banner Workflows</h1>
+          <p class="subtitle" id="heroLead">Add banner images, add a logo, choose where the logo should sit, and process the result.</p>
         </div>
       </div>
+      <button class="btn-ghost" id="resetTopBtn" type="button">Reset</button>
+    </header>
 
-      <div class="card preview">
-        <div class="illus-copy">Workflow snapshot</div>
-        <div class="preview-stage" id="previewStage">
-          <div class="preview-tile">
-            <div>
-              <strong>Banner files</strong>
-              <span id="previewBannerLabel">No banner selected</span>
-            </div>
-            <span class="preview-pill">1+</span>
-          </div>
-          <div class="preview-arrow">↓</div>
-          <div class="preview-tile">
-            <div>
-              <strong id="previewActionTitle">Logo</strong>
-              <span id="previewActionLabel">No logo selected</span>
-            </div>
-            <span class="preview-pill" id="previewActionPill">Stamp</span>
-          </div>
-          <div class="preview-arrow">↓</div>
-          <div class="preview-tile">
-            <div>
-              <strong>Result</strong>
-              <span id="previewResultLabel">Ready to generate</span>
-            </div>
-            <span class="preview-pill" id="previewResultPill">Smart</span>
-          </div>
-          <div class="preview-meta">
-            <strong id="previewCountLabel">No files selected</strong>
-            <span id="previewMetaNote">Stamp workflow</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="main">
-      <form id="processForm" class="card panel stack" novalidate>
+    <section class="shell">
+      <form id="processForm" class="panel control-panel" novalidate>
         <section class="section">
           <div class="section-head">
-            <div>
-              <h2>Tool</h2>
-              <p id="modeDescription">Choose whether this batch should be stamped or optimized.</p>
-            </div>
+            <h2>Workflow</h2>
+            <span class="meta" id="modeDescription">Stamp uses banner files, one logo, and a placement choice.</span>
           </div>
-
-          <div class="mode-switch" role="tablist" aria-label="Workflow mode">
-            <button class="mode-btn is-active" id="stampModeBtn" type="button" data-mode="stamp" aria-pressed="true">
-              <strong>Stamp Banners</strong>
-              <span>Add a logo, choose placement, and download the processed result.</span>
-            </button>
-            <button class="mode-btn" id="optimizeModeBtn" type="button" data-mode="optimize" aria-pressed="false">
-              <strong>Optimize Banners</strong>
-              <span>Upload banners only and download optimized output for one or many files.</span>
-            </button>
+          <div class="segmented" role="tablist" aria-label="Workflow mode">
+            <button class="mode-btn is-active" id="stampModeBtn" type="button" data-mode="stamp" aria-pressed="true">Stamp Banners</button>
+            <button class="mode-btn" id="optimizeModeBtn" type="button" data-mode="optimize" aria-pressed="false">Optimize Banners</button>
+            <button class="mode-btn" id="adaptModeBtn" type="button" data-mode="adapt" aria-pressed="false">Adapt Creatives</button>
           </div>
         </section>
 
         <section class="section">
           <div class="section-head">
-            <div>
-              <h2>Banners</h2>
-              <p id="bannerSectionCopy">Drop multiple images or choose them from the computer.</p>
-            </div>
+            <h2 id="assetSectionTitle">Banners</h2>
             <button class="btn-ghost" type="button" id="clearBannersBtn" disabled>Clear</button>
           </div>
-
           <div class="dropzone" id="bannerDropzone">
-            <input id="bannerInput" name="banners" type="file" accept="image/*" multiple>
+            <input id="bannerInput" name="banners" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple>
             <div>
-              <strong>Drop banner images here</strong>
-              <span>PNG, JPG, WebP, or GIF files work well.</span>
-            </div>
-            <div class="button-row" aria-hidden="true">
-              <span class="btn-secondary">Choose files</span>
+              <strong id="bannerDropTitle">Banner images</strong>
+              <span id="bannerSectionCopy">PNG, JPG, WebP, ZIP</span>
             </div>
           </div>
-
           <div class="file-list" id="bannerList" aria-live="polite"></div>
         </section>
 
         <section class="section" id="logoSection">
           <div class="section-head">
-            <div>
-              <h2>Logo</h2>
-              <p>Add one logo file to stamp onto the banners.</p>
-            </div>
+            <h2>Logo</h2>
             <button class="btn-ghost" type="button" id="clearLogoBtn" disabled>Clear</button>
           </div>
-
-          <div class="dropzone" id="logoDropzone" style="min-height: 126px;">
+          <div class="dropzone" id="logoDropzone">
             <input id="logoInput" name="logo" type="file" accept="image/*">
             <div>
-              <strong>Drop a logo file here</strong>
-              <span>A transparent image usually looks best.</span>
-            </div>
-            <div class="button-row" aria-hidden="true">
-              <span class="btn-secondary">Choose file</span>
+              <strong>Logo image</strong>
+              <span>PNG or SVG-style transparent asset</span>
             </div>
           </div>
-
           <div class="file-list" id="logoList" aria-live="polite"></div>
         </section>
 
         <section class="section" id="placementSection">
           <div class="section-head">
-            <div>
-              <h2>Placement</h2>
-              <p>Smart is the default. The other options keep the logo in a corner.</p>
-            </div>
+            <h2>Placement</h2>
           </div>
+          <div class="radio-grid" role="radiogroup" aria-label="Placement mode">
+            <label class="radio-card">
+              <input type="radio" name="placement" value="smart" checked>
+              <span>Smart</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="placement" value="top-left">
+              <span>Top left</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="placement" value="top-right">
+              <span>Top right</span>
+            </label>
+          </div>
+        </section>
 
+        <section class="section" id="adaptationSection" hidden>
+          <div class="section-head">
+            <h2>Adaptation</h2>
+            <span class="meta" id="targetCountLabel">1 target</span>
+          </div>
           <div class="field-grid">
-            <div class="radio-grid" role="radiogroup" aria-label="Placement mode">
-              <label class="radio-card">
-                <input type="radio" name="placement" value="smart" checked>
-                <span class="title">Smart</span>
-                <span class="desc">The system chooses the best placement.</span>
+            <label class="field-label">
+              Preset
+              <select id="presetSelect">
+                <option value="300x250">300x250 Medium Rectangle</option>
+                <option value="728x90">728x90 Leaderboard</option>
+                <option value="160x600">160x600 Skyscraper</option>
+                <option value="970x250">970x250 Billboard</option>
+                <option value="1080x1080">1080x1080 Square</option>
+                <option value="1080x1920">1080x1920 Story</option>
+              </select>
+            </label>
+            <div class="button-row">
+              <button class="btn-secondary" id="addPresetBtn" type="button">Add Preset</button>
+            </div>
+            <div class="two-col">
+              <label class="field-label">
+                Width
+                <input id="targetWidthInput" type="number" min="1" step="1" value="300">
               </label>
-              <label class="radio-card">
-                <input type="radio" name="placement" value="top-left">
-                <span class="title">Top left</span>
-                <span class="desc">Keep the logo in the top-left corner.</span>
+              <label class="field-label">
+                Height
+                <input id="targetHeightInput" type="number" min="1" step="1" value="250">
               </label>
-              <label class="radio-card">
-                <input type="radio" name="placement" value="top-right">
-                <span class="title">Top right</span>
-                <span class="desc">Keep the logo in the top-right corner.</span>
+            </div>
+            <div class="button-row">
+              <button class="btn-secondary" id="addCustomTargetBtn" type="button">Add Size</button>
+            </div>
+            <div class="target-list" id="targetList" aria-live="polite"></div>
+            <label class="field-label">
+              Output mode
+              <select id="resizeModeSelect">
+                <option value="fit_expand">FIT_EXPAND</option>
+                <option value="blur_expand">BLUR_EXPAND</option>
+                <option value="solid_background">SOLID_BACKGROUND</option>
+                <option value="dominant_color_background">DOMINANT_COLOR_BACKGROUND</option>
+              </select>
+            </label>
+            <div class="two-col">
+              <label class="field-label">
+                Background
+                <input id="backgroundColorInput" type="color" value="#ffffff">
+              </label>
+              <label class="field-label">
+                Blur
+                <input id="blurRadiusInput" type="number" min="0" max="80" step="1" value="24">
               </label>
             </div>
           </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="outputSettingsSection">
           <div class="section-head">
-            <div>
-              <h2>Finish</h2>
-              <p id="finishCopy">Start processing when everything is ready.</p>
-            </div>
+            <h2>Output Settings</h2>
+            <span class="meta">Configure download details</span>
           </div>
+          <div class="field-grid">
+            <label class="field-label">
+              Custom File/Folder Name (Optional)
+              <input id="customNameInput" name="custom_name" type="text" placeholder="e.g. dochase_banners" maxlength="100">
+            </label>
+          </div>
+        </section>
 
+        <section class="section">
           <div class="button-row">
-            <button id="submitBtn" class="btn" type="submit" disabled>Stamp and download</button>
+            <button id="submitBtn" class="btn" type="submit" disabled>Stamp and Download</button>
             <button id="resetBtn" class="btn-secondary" type="button">Reset</button>
           </div>
-
-          <div class="progress-wrap" style="margin-top: 14px;">
+          <div class="status-strip">
             <div class="progress-meta">
               <span id="progressLabel">Idle</span>
               <span id="progressValue">0%</span>
@@ -796,39 +823,63 @@
             <div class="progress-bar" aria-hidden="true">
               <div class="progress-fill" id="progressFill"></div>
             </div>
+            <p class="status" id="statusMessage" data-tone="neutral">Add at least one banner and a logo to continue.</p>
           </div>
-
-          <p class="status" id="statusMessage" data-tone="neutral">
-            Add at least one banner and a logo to continue.
-          </p>
         </section>
       </form>
 
-      <aside class="card panel sidebar">
-        <section class="info-block">
-          <h2>How it works</h2>
-          <ol class="steps">
-            <li><span>1</span><div id="workflowStep1">Add banner files.</div></li>
-            <li><span>2</span><div id="workflowStep2">Add a logo file.</div></li>
-            <li><span>3</span><div id="workflowStep3">Choose placement and download the processed result.</div></li>
-          </ol>
-        </section>
-
-        <section class="info-block">
-          <h2>Current selection</h2>
-          <p id="bannerCount" style="margin-top: 8px;">0 banners selected</p>
-          <p id="logoState" style="margin-top: 6px;">Logo not added</p>
-          <p id="placementState" style="margin-top: 6px;">Placement: Smart</p>
-          <p id="readyState" style="margin-top: 6px;">Ready: No</p>
-        </section>
-
-        <section class="info-block">
-          <h2>Notes</h2>
-          <p class="quiet" id="notesCopy">
-            This page is designed to stay simple and easy to use while keeping the upload and download flow intact.
-          </p>
-        </section>
-      </aside>
+      <section class="panel preview-panel">
+        <div class="preview-head">
+          <div>
+            <h2>Output Preview</h2>
+            <span class="meta" id="outputPreviewMeta">No output yet.</span>
+          </div>
+          <button class="btn-secondary" id="downloadLastBtn" type="button" disabled>Download Output</button>
+        </div>
+        <div class="preview-body">
+          <div class="output-stage">
+            <img id="outputPreviewImage" alt="Processed output preview" hidden>
+            <div class="empty" id="outputPreviewEmpty">Run a single-image job to preview the output here.</div>
+          </div>
+          <aside class="side">
+            <section class="side-section">
+              <h2>Current Selection</h2>
+              <div class="summary-grid">
+                <div class="summary-row"><span>Assets</span><strong id="bannerCount">0 banners</strong></div>
+                <div class="summary-row"><span>Logo</span><strong id="logoState">None</strong></div>
+                <div class="summary-row"><span>Setting</span><strong id="placementState">Smart</strong></div>
+                <div class="summary-row"><span>Ready</span><strong id="readyState">No</strong></div>
+              </div>
+            </section>
+            <section class="side-section">
+              <h2>Workflow Snapshot</h2>
+              <div class="snapshot">
+                <div class="snapshot-row">
+                  <strong id="previewFileTitle">Banner files</strong>
+                  <span id="previewBannerLabel">No banner selected</span>
+                </div>
+                <div class="snapshot-row">
+                  <strong id="previewActionTitle">Logo</strong>
+                  <span id="previewActionLabel">No logo selected</span>
+                </div>
+                <div class="snapshot-row">
+                  <strong>Result</strong>
+                  <span id="previewResultLabel">Ready to generate</span>
+                </div>
+              </div>
+            </section>
+            <section class="side-section">
+              <h2>Details</h2>
+              <div class="summary-grid">
+                <div class="summary-row"><span>Selected</span><strong id="previewCountLabel">No files</strong></div>
+                <div class="summary-row"><span>Mode</span><strong id="previewActionPill">Stamp</strong></div>
+                <div class="summary-row"><span>Output</span><strong id="previewResultPill">Smart</strong></div>
+                <div class="summary-row"><span>Tool</span><strong id="previewMetaNote">Stamp workflow</strong></div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -839,6 +890,9 @@
       const modeDescription = document.getElementById('modeDescription');
       const stampModeBtn = document.getElementById('stampModeBtn');
       const optimizeModeBtn = document.getElementById('optimizeModeBtn');
+      const adaptModeBtn = document.getElementById('adaptModeBtn');
+      const assetSectionTitle = document.getElementById('assetSectionTitle');
+      const bannerDropTitle = document.getElementById('bannerDropTitle');
       const bannerInput = document.getElementById('bannerInput');
       const logoInput = document.getElementById('logoInput');
       const bannerDropzone = document.getElementById('bannerDropzone');
@@ -848,19 +902,30 @@
       const bannerSectionCopy = document.getElementById('bannerSectionCopy');
       const logoSection = document.getElementById('logoSection');
       const placementSection = document.getElementById('placementSection');
-      const finishCopy = document.getElementById('finishCopy');
-      const workflowStep1 = document.getElementById('workflowStep1');
-      const workflowStep2 = document.getElementById('workflowStep2');
-      const workflowStep3 = document.getElementById('workflowStep3');
-      const notesCopy = document.getElementById('notesCopy');
+      const adaptationSection = document.getElementById('adaptationSection');
+      const presetSelect = document.getElementById('presetSelect');
+      const addPresetBtn = document.getElementById('addPresetBtn');
+      const targetWidthInput = document.getElementById('targetWidthInput');
+      const targetHeightInput = document.getElementById('targetHeightInput');
+      const addCustomTargetBtn = document.getElementById('addCustomTargetBtn');
+      const targetList = document.getElementById('targetList');
+      const targetCountLabel = document.getElementById('targetCountLabel');
+      const resizeModeSelect = document.getElementById('resizeModeSelect');
+      const backgroundColorInput = document.getElementById('backgroundColorInput');
+      const blurRadiusInput = document.getElementById('blurRadiusInput');
       const bannerCount = document.getElementById('bannerCount');
       const logoState = document.getElementById('logoState');
       const placementState = document.getElementById('placementState');
       const readyState = document.getElementById('readyState');
+      const outputPreviewImage = document.getElementById('outputPreviewImage');
+      const outputPreviewEmpty = document.getElementById('outputPreviewEmpty');
+      const outputPreviewMeta = document.getElementById('outputPreviewMeta');
+      const downloadLastBtn = document.getElementById('downloadLastBtn');
       const statusMessage = document.getElementById('statusMessage');
       const progressFill = document.getElementById('progressFill');
       const progressLabel = document.getElementById('progressLabel');
       const progressValue = document.getElementById('progressValue');
+      const previewFileTitle = document.getElementById('previewFileTitle');
       const previewBannerLabel = document.getElementById('previewBannerLabel');
       const previewActionTitle = document.getElementById('previewActionTitle');
       const previewActionLabel = document.getElementById('previewActionLabel');
@@ -872,8 +937,10 @@
       const submitBtn = document.getElementById('submitBtn');
       const clearBannersBtn = document.getElementById('clearBannersBtn');
       const clearLogoBtn = document.getElementById('clearLogoBtn');
+      const customNameInput = document.getElementById('customNameInput');
       const resetBtn = document.getElementById('resetBtn');
-      const modeButtons = [stampModeBtn, optimizeModeBtn];
+      const resetTopBtn = document.getElementById('resetTopBtn');
+      const modeButtons = [stampModeBtn, optimizeModeBtn, adaptModeBtn];
       const configuredApiBase = document
         .querySelector('meta[name="dbse-api-base"]')
         ?.getAttribute('content')
@@ -886,28 +953,27 @@
       );
       const apiEndpoints = {
         stamp: `${resolvedApiBase}/process`,
-        optimize: `${resolvedApiBase}/optimize`
+        optimize: `${resolvedApiBase}/optimize`,
+        adapt: `${resolvedApiBase}/resize`
       };
 
       const state = {
         mode: 'stamp',
         banners: [],
         logo: null,
+        targets: ['300x250'],
+        lastOutput: null,
         busy: false
       };
 
       const modeCopy = {
         stamp: {
-          heroLead:
-            'Add banner images, add a logo, choose where the logo should sit, and process the result. A single banner downloads as an image, while multiple banners download as a ZIP.',
-          modeDescription: 'Stamp uses banner files, one logo, and a placement choice.',
-          bannerSectionCopy: 'Drop multiple images or choose them from the computer.',
-          finishCopy: 'Start stamping when everything is ready.',
-          submitLabel: 'Stamp and download',
-          step2: 'Add a logo file.',
-          step3: 'Choose placement and download the processed result.',
-          notes:
-            'Stamp mode keeps the current banner stamping workflow intact, including logo upload, placement choice, and batch downloads.',
+          heroLead: 'Add banner images, add a logo, choose where the logo should sit, and process the result.',
+          modeDescription: 'Logo stamping',
+          assetTitle: 'Banners',
+          assetDropTitle: 'Banner images',
+          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF',
+          submitLabel: 'Stamp and Download',
           actionTitle: 'Logo',
           actionPill: 'Stamp',
           actionEmpty: 'No logo selected',
@@ -915,31 +981,45 @@
           previewMeta: 'Stamp workflow',
           initialStatus: 'Add at least one banner and a logo to continue.',
           workingStatus: 'Uploading files and stamping banners...',
-          successImage: 'Stamped image is ready and downloading now.',
-          successArchive: 'Stamped ZIP is ready and downloading now.',
+          successImage: 'Stamped image is ready.',
+          successArchive: 'Stamped ZIP is ready.',
           missingStatus: 'Add at least one banner and a logo to continue.'
         },
         optimize: {
-          heroLead:
-            'Add one or many banner images and optimize them for delivery. A single banner downloads as an image, while multiple banners download as a ZIP.',
-          modeDescription: 'Optimize uses banner files only. Logo and placement are not required.',
-          bannerSectionCopy: 'Drop one or many banner images to optimize them.',
-          finishCopy: 'Start optimization when the banners are ready.',
-          submitLabel: 'Optimize and download',
-          step2: 'No logo file is needed.',
-          step3: 'Run optimization and download the optimized result.',
-          notes:
-            'Optimize mode sends banner files only and returns either one optimized image or a ZIP when multiple banners are uploaded.',
+          heroLead: 'Add one or many banner images and optimize them for delivery.',
+          modeDescription: 'Delivery optimization',
+          assetTitle: 'Banners',
+          assetDropTitle: 'Banner images',
+          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF',
+          submitLabel: 'Optimize and Download',
           actionTitle: 'Optimizer',
           actionPill: 'Optimize',
-          actionEmpty: 'Automatic banner cleanup and tuning',
+          actionEmpty: 'Automatic cleanup',
           resultWaiting: 'Waiting for banners',
           previewMeta: 'Optimize workflow',
           initialStatus: 'Add at least one banner to continue.',
           workingStatus: 'Uploading files and optimizing banners...',
-          successImage: 'Optimized image is ready and downloading now.',
-          successArchive: 'Optimized ZIP is ready and downloading now.',
+          successImage: 'Optimized image is ready.',
+          successArchive: 'Optimized ZIP is ready.',
           missingStatus: 'Add at least one banner to continue.'
+        },
+        adapt: {
+          heroLead: 'Add one or many creatives, choose target dimensions, and resize without stretching or cropping.',
+          modeDescription: 'Creative adaptation',
+          assetTitle: 'Creatives',
+          assetDropTitle: 'Creative images',
+          assetTypes: 'PNG, JPG, WebP, BMP, TIFF',
+          submitLabel: 'Adapt and Download',
+          actionTitle: 'Targets',
+          actionPill: 'Adapt',
+          actionEmpty: 'No target selected',
+          resultWaiting: 'Waiting for creatives and targets',
+          previewMeta: 'Adapt workflow',
+          initialStatus: 'Add at least one creative and one target size to continue.',
+          workingStatus: 'Uploading files and adapting creatives...',
+          successImage: 'Adapted image is ready.',
+          successArchive: 'Adapted ZIP is ready.',
+          missingStatus: 'Add at least one creative and one target size to continue.'
         }
       };
 
@@ -964,7 +1044,7 @@
         a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
       const keepImages = (files) =>
-        Array.from(files || []).filter((file) => file && file.type.startsWith('image/'));
+        Array.from(files || []).filter((file) => file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip')));
 
       const getModeCopy = () => modeCopy[state.mode];
 
@@ -977,9 +1057,16 @@
       };
 
       const hasRequiredInputs = () =>
-        state.mode === 'stamp' ? Boolean(state.banners.length && state.logo) : Boolean(state.banners.length);
+        state.mode === 'stamp'
+          ? Boolean(state.banners.length && state.logo)
+          : state.mode === 'adapt'
+            ? Boolean(state.banners.length && state.targets.length)
+            : Boolean(state.banners.length);
 
-      const getResultExpectation = (count) => (count === 1 ? 'Ready to download image' : 'Ready to download ZIP');
+      const getWorkItemCount = () =>
+        state.mode === 'adapt' ? state.banners.length * state.targets.length : state.banners.length;
+
+      const getResultExpectation = (count) => (count === 1 ? 'Image output' : 'ZIP output');
 
       const extensionFromName = (name) => {
         const match = /\.([a-z0-9]+)$/i.exec(name || '');
@@ -1008,32 +1095,99 @@
       const getDownloadName = (result, mode) => {
         if (result.filename) return result.filename;
 
-        const count = state.banners.length;
+        const count = getWorkItemCount();
         if (isArchiveResponse(result, count)) {
-          return mode === 'stamp' ? 'dochase-stamped-banners.zip' : 'dochase-optimized-banners.zip';
+          if (mode === 'stamp') return 'dochase-stamped-banners.zip';
+          if (mode === 'adapt') return 'dochase-adapted-creatives.zip';
+          return 'dochase-optimized-banners.zip';
         }
 
         const sourceName = state.banners[0]?.name || 'banner';
         const extension = extensionFromType(result.contentType) || extensionFromName(sourceName) || 'png';
-        const suffix = mode === 'stamp' ? 'stamped' : 'optimized';
+        const suffix = mode === 'stamp' ? 'stamped' : mode === 'adapt' ? 'adapted' : 'optimized';
         return `${stripExtension(sourceName)}-${suffix}.${extension}`;
+      };
+
+      const clearOutputPreview = () => {
+        if (state.lastOutput?.url) {
+          URL.revokeObjectURL(state.lastOutput.url);
+        }
+        state.lastOutput = null;
+        outputPreviewImage.hidden = true;
+        outputPreviewImage.removeAttribute('src');
+        outputPreviewEmpty.hidden = false;
+        outputPreviewEmpty.textContent = 'Run a single-image job to preview the output here.';
+        outputPreviewMeta.textContent = 'No output yet.';
+        downloadLastBtn.disabled = true;
+      };
+
+      const setOutputPreview = (result, filename, itemCount) => {
+        clearOutputPreview();
+
+        const url = URL.createObjectURL(result.blob);
+        const isImage = /^image\//i.test(result.contentType || result.blob.type || '');
+        const isArchive = isArchiveResponse(result, itemCount);
+        state.lastOutput = { url, filename };
+        downloadLastBtn.disabled = false;
+
+        if (isImage && !isArchive) {
+          outputPreviewImage.src = url;
+          outputPreviewImage.hidden = false;
+          outputPreviewEmpty.hidden = true;
+          outputPreviewMeta.textContent = filename;
+          return;
+        }
+
+        outputPreviewImage.hidden = true;
+        outputPreviewEmpty.hidden = false;
+        outputPreviewEmpty.textContent = isArchive
+          ? 'Batch ZIP is ready.'
+          : 'Output is ready.';
+        outputPreviewMeta.textContent = filename;
+      };
+
+      const addTarget = (value) => {
+        const target = String(value || '').trim().toLowerCase();
+        if (!/^[1-9][0-9]*x[1-9][0-9]*$/.test(target)) {
+          setStatus('Enter a valid target size like 300x250.', 'error');
+          return;
+        }
+        if (!state.targets.includes(target)) {
+          state.targets.push(target);
+          refreshUI('Target size added.');
+        }
+      };
+
+      const renderTargets = () => {
+        targetList.innerHTML = '';
+        targetCountLabel.textContent = `${state.targets.length} target${state.targets.length === 1 ? '' : 's'}`;
+        state.targets.forEach((target, index) => {
+          const item = document.createElement('div');
+          item.className = 'target-item';
+          item.innerHTML = `<strong>${target}</strong><button class="btn-ghost" type="button">Remove</button>`;
+          item.querySelector('button').addEventListener('click', () => {
+            if (state.busy) return;
+            state.targets.splice(index, 1);
+            refreshUI('Target size removed.');
+          });
+          targetList.appendChild(item);
+        });
       };
 
       const updateModeUI = () => {
         const copy = getModeCopy();
         const isStamp = state.mode === 'stamp';
+        const isAdapt = state.mode === 'adapt';
 
         heroLead.textContent = copy.heroLead;
         modeDescription.textContent = copy.modeDescription;
-        bannerSectionCopy.textContent = copy.bannerSectionCopy;
-        finishCopy.textContent = copy.finishCopy;
+        assetSectionTitle.textContent = copy.assetTitle;
+        bannerDropTitle.textContent = copy.assetDropTitle;
+        bannerSectionCopy.textContent = copy.assetTypes;
         submitBtn.textContent = copy.submitLabel;
-        workflowStep1.textContent = 'Add banner files.';
-        workflowStep2.textContent = copy.step2;
-        workflowStep3.textContent = copy.step3;
-        notesCopy.textContent = copy.notes;
         logoSection.hidden = !isStamp;
         placementSection.hidden = !isStamp;
+        adaptationSection.hidden = !isAdapt;
 
         modeButtons.forEach((button) => {
           const active = button.dataset.mode === state.mode;
@@ -1058,45 +1212,53 @@
 
       const updatePreview = () => {
         const copy = getModeCopy();
-        const banner = state.banners[0] || null;
-        const bannerTotal = state.banners.length;
+        const asset = state.banners[0] || null;
+        const assetTotal = state.banners.length;
         const isStamp = state.mode === 'stamp';
+        const isAdapt = state.mode === 'adapt';
+        const itemCount = getWorkItemCount();
 
-        previewCountLabel.textContent = bannerTotal
-          ? `${bannerTotal} banner${bannerTotal === 1 ? '' : 's'} selected`
-          : 'No files selected';
-        previewBannerLabel.textContent = banner ? banner.name : 'No banner selected';
+        previewFileTitle.textContent = isAdapt ? 'Creative files' : 'Banner files';
+        previewCountLabel.textContent = assetTotal
+          ? `${assetTotal} ${isAdapt ? 'creative' : 'banner'}${assetTotal === 1 ? '' : 's'}`
+          : 'No files';
+        previewBannerLabel.textContent = asset ? asset.name : 'No file selected';
         previewActionTitle.textContent = copy.actionTitle;
         previewActionLabel.textContent = isStamp
           ? (state.logo ? state.logo.name : copy.actionEmpty)
-          : copy.actionEmpty;
+          : isAdapt
+            ? (state.targets.length ? state.targets.join(', ') : copy.actionEmpty)
+            : copy.actionEmpty;
         previewActionPill.textContent = copy.actionPill;
         previewResultPill.textContent = isStamp
           ? getPlacementLabel()
-          : bannerTotal > 1
+          : itemCount > 1
             ? 'ZIP'
-            : bannerTotal === 1
+            : itemCount === 1
               ? 'Image'
               : 'Auto';
         previewMetaNote.textContent = copy.previewMeta;
         previewResultLabel.textContent = hasRequiredInputs()
-          ? getResultExpectation(Math.max(1, bannerTotal))
+          ? getResultExpectation(Math.max(1, itemCount))
           : copy.resultWaiting;
       };
 
       const updateSummary = () => {
         const isStamp = state.mode === 'stamp';
+        const isAdapt = state.mode === 'adapt';
 
-        bannerCount.textContent = `${state.banners.length} banner${state.banners.length === 1 ? '' : 's'} selected`;
+        bannerCount.textContent = `${state.banners.length} ${isAdapt ? 'creative' : 'banner'}${state.banners.length === 1 ? '' : 's'}`;
         logoState.textContent = isStamp
-          ? (state.logo ? `Logo added: ${state.logo.name}` : 'Logo not added')
-          : state.logo
-            ? 'Logo: Saved for stamp mode'
-            : 'Logo: Not used in optimization';
+          ? (state.logo ? state.logo.name : 'None')
+          : isAdapt
+            ? `${state.targets.length} target${state.targets.length === 1 ? '' : 's'}`
+            : 'Not used';
         placementState.textContent = isStamp
-          ? `Placement: ${getPlacementLabel()}`
-          : 'Placement: Not used in optimization';
-        readyState.textContent = hasRequiredInputs() ? 'Ready: Yes' : 'Ready: No';
+          ? getPlacementLabel()
+          : isAdapt
+            ? resizeModeSelect.value
+            : 'Auto';
+        readyState.textContent = hasRequiredInputs() ? 'Yes' : 'No';
       };
 
       const renderFiles = () => {
@@ -1117,7 +1279,7 @@
             if (state.busy) return;
             state.banners.splice(index, 1);
             syncBannerInput();
-            refreshUI('Banner removed.');
+            refreshUI('File removed.');
           });
           bannerList.appendChild(item);
         });
@@ -1144,15 +1306,30 @@
 
       const applyControlState = () => {
         const isStamp = state.mode === 'stamp';
+        const isAdapt = state.mode === 'adapt';
 
         bannerInput.disabled = state.busy;
         logoInput.disabled = state.busy || !isStamp;
         document.querySelectorAll('input[name="placement"]').forEach((input) => {
           input.disabled = state.busy || !isStamp;
         });
+        [
+          presetSelect,
+          addPresetBtn,
+          targetWidthInput,
+          targetHeightInput,
+          addCustomTargetBtn,
+          resizeModeSelect,
+          backgroundColorInput,
+          blurRadiusInput
+        ].forEach((control) => {
+          control.disabled = state.busy || !isAdapt;
+        });
+        customNameInput.disabled = state.busy;
         clearBannersBtn.disabled = state.busy || !state.banners.length;
         clearLogoBtn.disabled = state.busy || !isStamp || !state.logo;
         resetBtn.disabled = state.busy;
+        resetTopBtn.disabled = state.busy;
         submitBtn.disabled = state.busy || !hasRequiredInputs();
         modeButtons.forEach((button) => {
           button.disabled = state.busy;
@@ -1162,6 +1339,7 @@
       const refreshUI = (message, tone = 'neutral') => {
         updateModeUI();
         renderFiles();
+        renderTargets();
         updateSummary();
         updatePreview();
         applyControlState();
@@ -1192,12 +1370,32 @@
         setTimeout(() => URL.revokeObjectURL(url), 1500);
       };
 
+      const downloadLastOutput = () => {
+        if (!state.lastOutput) return;
+        const link = document.createElement('a');
+        link.href = state.lastOutput.url;
+        link.download = state.lastOutput.filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      };
+
       const sendFiles = (mode) => new Promise((resolve, reject) => {
         const formData = new FormData();
-        state.banners.forEach((file) => formData.append('banners', file));
+        state.banners.forEach((file) => formData.append(mode === 'adapt' ? 'images' : 'banners', file));
+        
+        const customName = customNameInput.value.trim();
+        if (customName) {
+          formData.append('custom_name', customName);
+        }
         if (mode === 'stamp') {
           formData.append('logo', state.logo);
           formData.append('placement_mode', getPlacementValue());
+        } else if (mode === 'adapt') {
+          state.targets.forEach((target) => formData.append('targets', target));
+          formData.append('mode', resizeModeSelect.value);
+          formData.append('background_color', backgroundColorInput.value);
+          formData.append('blur_radius', blurRadiusInput.value);
         }
 
         const xhr = new XMLHttpRequest();
@@ -1213,13 +1411,11 @@
         };
 
         xhr.onprogress = (event) => {
+          const label = mode === 'stamp' ? 'Stamping' : mode === 'adapt' ? 'Adapting' : 'Optimizing';
           if (event.lengthComputable) {
-            setProgress(
-              60 + Math.min(40, (event.loaded / event.total) * 40),
-              mode === 'stamp' ? 'Stamping result' : 'Optimizing result'
-            );
+            setProgress(60 + Math.min(40, (event.loaded / event.total) * 40), label);
           } else {
-            setProgress(80, mode === 'stamp' ? 'Stamping result' : 'Optimizing result');
+            setProgress(80, label);
           }
         };
 
@@ -1228,19 +1424,6 @@
           const disposition = xhr.getResponseHeader('Content-Disposition');
 
           if (xhr.status >= 200 && xhr.status < 300) {
-            if (type.includes('application/json')) {
-              const reader = new FileReader();
-              reader.onload = () => {
-                try {
-                  resolve({ type: 'json', payload: JSON.parse(reader.result || '{}') });
-                } catch (error) {
-                  reject(new Error('The server returned data that could not be read.'));
-                }
-              };
-              reader.readAsText(xhr.response);
-              return;
-            }
-
             resolve({
               type: 'blob',
               blob: xhr.response,
@@ -1272,6 +1455,7 @@
       const setMode = (mode) => {
         if (state.busy || !modeCopy[mode] || mode === state.mode) return;
         state.mode = mode;
+        clearOutputPreview();
         setProgress(0, 'Idle');
         refreshUI(getModeCopy().initialStatus);
       };
@@ -1289,7 +1473,7 @@
 
         state.banners = merged;
         syncBannerInput();
-        refreshUI(`${incoming.length} banner${incoming.length === 1 ? '' : 's'} added.`);
+        refreshUI(`${incoming.length} file${incoming.length === 1 ? '' : 's'} added.`);
       };
 
       const setLogo = (files) => {
@@ -1298,6 +1482,19 @@
         state.logo = file;
         logoInput.value = '';
         refreshUI('Logo added.');
+      };
+
+      const resetAll = () => {
+        if (state.busy) return;
+        state.banners = [];
+        state.logo = null;
+        state.targets = ['300x250'];
+        bannerInput.value = '';
+        logoInput.value = '';
+        form.reset();
+        clearOutputPreview();
+        setProgress(0, 'Idle');
+        refreshUI(getModeCopy().initialStatus);
       };
 
       const wireDropzone = (zone, onFiles) => {
@@ -1336,12 +1533,22 @@
         setLogo(event.target.files);
       });
 
-      stampModeBtn.addEventListener('click', () => {
-        setMode('stamp');
+      stampModeBtn.addEventListener('click', () => setMode('stamp'));
+      optimizeModeBtn.addEventListener('click', () => setMode('optimize'));
+      adaptModeBtn.addEventListener('click', () => setMode('adapt'));
+
+      addPresetBtn.addEventListener('click', () => {
+        if (state.busy) return;
+        addTarget(presetSelect.value);
       });
 
-      optimizeModeBtn.addEventListener('click', () => {
-        setMode('optimize');
+      addCustomTargetBtn.addEventListener('click', () => {
+        if (state.busy) return;
+        addTarget(`${targetWidthInput.value}x${targetHeightInput.value}`);
+      });
+
+      [resizeModeSelect, backgroundColorInput, blurRadiusInput].forEach((input) => {
+        input.addEventListener('change', () => refreshUI());
       });
 
       document.querySelectorAll('input[name="placement"]').forEach((input) => {
@@ -1352,7 +1559,7 @@
         if (state.busy) return;
         state.banners = [];
         bannerInput.value = '';
-        refreshUI('All banners cleared.');
+        refreshUI('Files cleared.');
       });
 
       clearLogoBtn.addEventListener('click', () => {
@@ -1362,16 +1569,9 @@
         refreshUI('Logo cleared.');
       });
 
-      resetBtn.addEventListener('click', () => {
-        if (state.busy) return;
-        state.banners = [];
-        state.logo = null;
-        bannerInput.value = '';
-        logoInput.value = '';
-        form.reset();
-        setProgress(0, 'Idle');
-        refreshUI(getModeCopy().initialStatus);
-      });
+      resetBtn.addEventListener('click', resetAll);
+      resetTopBtn.addEventListener('click', resetAll);
+      downloadLastBtn.addEventListener('click', downloadLastOutput);
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -1389,16 +1589,12 @@
 
         try {
           const result = await sendFiles(mode);
-          if (result.type === 'json') {
-            const payload = result.payload || {};
-            throw new Error(payload.message || payload.error || 'The server did not return a downloadable result.');
-          }
-
           const downloadName = getDownloadName(result, mode);
+          setOutputPreview(result, downloadName, getWorkItemCount());
           downloadBlob(result.blob, downloadName);
           setProgress(100, 'Complete');
           setStatus(
-            isArchiveResponse(result, state.banners.length) ? copy.successArchive : copy.successImage,
+            isArchiveResponse(result, getWorkItemCount()) ? copy.successArchive : copy.successImage,
             'success'
           );
         } catch (error) {

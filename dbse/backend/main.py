@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
+import io
 import os
+import zipfile
 from typing import Any, Iterable
 
 from fastapi import FastAPI, Request, Response, status
@@ -17,7 +19,14 @@ try:  # pragma: no cover - import shim for direct execution
         load_image_bytes,
         process_banner_batch,
     )
-    from .utils import build_zip_bytes, media_type_for_filename
+    from .resizer import (
+        ALLOWED_RESIZE_MODES,
+        ResizeTask,
+        normalize_resize_mode,
+        parse_target_dimensions,
+        process_resize_batch,
+    )
+    from .utils import build_zip_bytes, media_type_for_filename, sanitize_stem
 except ImportError:  # pragma: no cover
     from banner_optimizer import OptimizationTask, process_optimization_batch
     from image_processor import (
@@ -26,7 +35,14 @@ except ImportError:  # pragma: no cover
         load_image_bytes,
         process_banner_batch,
     )
-    from utils import build_zip_bytes, media_type_for_filename
+    from resizer import (
+        ALLOWED_RESIZE_MODES,
+        ResizeTask,
+        normalize_resize_mode,
+        parse_target_dimensions,
+        process_resize_batch,
+    )
+    from utils import build_zip_bytes, media_type_for_filename, sanitize_stem
 
 
 app = FastAPI(title="DBSE Banner Processor", version="1.0.0")
@@ -105,6 +121,22 @@ def _normalize_mode(mode: str) -> str:
     return mode.strip().lower().replace("_", "-")
 
 
+def _all_text(form: Any, keys: Iterable[str]) -> list[str]:
+    values: list[str] = []
+    for key in keys:
+        if hasattr(form, "getlist"):
+            values.extend(
+                value.strip()
+                for value in form.getlist(key)
+                if isinstance(value, str) and value.strip()
+            )
+        else:
+            value = form.get(key)
+            if isinstance(value, str) and value.strip():
+                values.append(value.strip())
+    return values
+
+
 def _download_response(
     processed_files: list[tuple[str, bytes]],
     errors: list[str],
@@ -112,6 +144,7 @@ def _download_response(
     empty_message: str,
     zip_filename: str,
     error_filename: str,
+    custom_name: str | None = None,
 ) -> Response:
     if not processed_files:
         return _error_zip_response(
@@ -120,14 +153,29 @@ def _download_response(
             filename=error_filename,
         )
 
-    if len(processed_files) == 1 and not errors:
-        output_name, output_bytes = processed_files[0]
-        headers = {"Content-Disposition": f'attachment; filename="{output_name}"'}
-        return Response(
-            content=output_bytes,
-            media_type=media_type_for_filename(output_name),
-            headers=headers,
-        )
+    if custom_name:
+        stem = sanitize_stem(custom_name)
+        if len(processed_files) == 1 and not errors:
+            output_name, output_bytes = processed_files[0]
+            ext = Path(output_name).suffix
+            output_name = f"{stem}{ext}"
+            headers = {"Content-Disposition": f'attachment; filename="{output_name}"'}
+            return Response(
+                content=output_bytes,
+                media_type=media_type_for_filename(output_name),
+                headers=headers,
+            )
+        else:
+            zip_filename = f"{stem}.zip"
+    else:
+        if len(processed_files) == 1 and not errors:
+            output_name, output_bytes = processed_files[0]
+            headers = {"Content-Disposition": f'attachment; filename="{output_name}"'}
+            return Response(
+                content=output_bytes,
+                media_type=media_type_for_filename(output_name),
+                headers=headers,
+            )
 
     zip_bytes = build_zip_bytes(processed_files, errors or None)
     headers = {"Content-Disposition": f'attachment; filename="{zip_filename}"'}
@@ -155,6 +203,7 @@ async def healthcheck() -> dict[str, str]:
 @app.post("/process")
 async def process(request: Request) -> Response:
     form = await request.form()
+    custom_name = _first_text(form, ("custom_name", "output_name"))
 
     placement_mode_raw = _first_text(form, ("placement_mode", "placement"))
     if not placement_mode_raw:
@@ -216,15 +265,45 @@ async def process(request: Request) -> Response:
     errors = []
     chunk_size = max(1, min(16, (os.cpu_count() or 1) * 2))
 
-    for chunk_index, upload_chunk in enumerate(_chunked(banner_uploads, chunk_size)):
+    banner_files: list[tuple[str, bytes]] = []
+    for upload in banner_uploads:
+        banner_bytes = await upload.read()
+        source_name = upload.filename or "unknown"
+        if not banner_bytes:
+            errors.append(f"{source_name}: uploaded file is empty")
+            continue
+            
+        if source_name.lower().endswith(".zip"):
+            try:
+                with zipfile.ZipFile(io.BytesIO(banner_bytes)) as zf:
+                    for zinfo in zf.infolist():
+                        if zinfo.is_dir() or zinfo.filename.startswith("__MACOSX/") or zinfo.filename.split("/")[-1].startswith("."):
+                            continue
+                        ext = zinfo.filename.lower().rpartition(".")[-1]
+                        if ext not in {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif"}:
+                            continue
+                        
+                        file_data = zf.read(zinfo.filename)
+                        if file_data:
+                            banner_files.append((os.path.basename(zinfo.filename), file_data))
+            except zipfile.BadZipFile:
+                errors.append(f"{source_name}: invalid zip archive")
+        else:
+            banner_files.append((source_name, banner_bytes))
+
+    if not banner_files:
+        return _error_zip_response(
+            ["No valid banner images found in the upload."] + errors,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            filename="dbse_processed_banners_errors.zip",
+        )
+
+    for chunk_index, upload_chunk in enumerate(_chunked(banner_files, chunk_size)):
         tasks = []
-        for offset, upload in enumerate(upload_chunk):
-            banner_bytes = await upload.read()
-            source_index = (chunk_index * chunk_size) + offset + 1
-            source_name = upload.filename or f"banner_{source_index}"
+        for offset, (source_name, banner_bytes) in enumerate(upload_chunk):
             if not banner_bytes:
-                errors.append(f"{source_name}: uploaded file is empty")
                 continue
+
 
             tasks.append(
                 BannerTask(
@@ -247,12 +326,14 @@ async def process(request: Request) -> Response:
         empty_message="No banners could be processed.",
         zip_filename="dbse_processed_banners.zip",
         error_filename="dbse_processed_banners_errors.zip",
+        custom_name=custom_name,
     )
 
 
 @app.post("/optimize")
 async def optimize(request: Request) -> Response:
     form = await request.form()
+    custom_name = _first_text(form, ("custom_name", "output_name"))
 
     banner_uploads = _collect_uploads(
         form,
@@ -298,4 +379,94 @@ async def optimize(request: Request) -> Response:
         empty_message="No banners could be optimized.",
         zip_filename="dbse_optimized_banners.zip",
         error_filename="dbse_optimized_banners_errors.zip",
+        custom_name=custom_name,
+    )
+
+
+@app.post("/resize")
+async def resize(request: Request) -> Response:
+    form = await request.form()
+    custom_name = _first_text(form, ("custom_name", "output_name"))
+
+    mode = normalize_resize_mode(_first_text(form, ("mode", "resize_mode")))
+    if mode not in ALLOWED_RESIZE_MODES:
+        return _error_zip_response(
+            [
+                "Invalid mode.",
+                "Expected one of: fit_expand, blur_expand, solid_background, dominant_color_background.",
+            ],
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            filename="dochase_adapted_creatives_errors.zip",
+        )
+
+    try:
+        targets = parse_target_dimensions(
+            _all_text(form, ("targets", "dimensions", "target")),
+            _first_text(form, ("target_width", "width")),
+            _first_text(form, ("target_height", "height")),
+        )
+    except ValueError as exc:
+        return _error_zip_response(
+            [str(exc)],
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            filename="dochase_adapted_creatives_errors.zip",
+        )
+
+    try:
+        blur_radius = float(_first_text(form, ("blur_radius", "blur")) or "24")
+    except ValueError:
+        return _error_zip_response(
+            ["blur_radius must be a number."],
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            filename="dochase_adapted_creatives_errors.zip",
+        )
+
+    uploads = _collect_uploads(form, ("images", "image", "files", "creative", "creatives"))
+    if not uploads:
+        return _error_zip_response(
+            ["No creative images were uploaded."],
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            filename="dochase_adapted_creatives_errors.zip",
+        )
+
+    background_color = _first_text(form, ("background_color", "background", "color"))
+    processed_files = []
+    errors = []
+    chunk_size = max(1, min(16, (os.cpu_count() or 1) * 2))
+
+    for chunk_index, upload_chunk in enumerate(_chunked(uploads, chunk_size)):
+        tasks = []
+        for offset, upload in enumerate(upload_chunk):
+            image_bytes = await upload.read()
+            source_index = (chunk_index * chunk_size) + offset + 1
+            source_name = upload.filename or f"creative_{source_index}"
+            if not image_bytes:
+                errors.append(f"{source_name}: uploaded file is empty")
+                continue
+
+            for target in targets:
+                tasks.append(
+                    ResizeTask(
+                        filename=source_name,
+                        image_bytes=image_bytes,
+                        target=target,
+                        mode=mode,
+                        background_color=background_color,
+                        blur_radius=blur_radius,
+                    )
+                )
+
+        for result in process_resize_batch(tasks):
+            if result.output_name and result.output_bytes:
+                processed_files.append((result.output_name, result.output_bytes))
+            if result.error:
+                errors.append(result.error)
+
+    return _download_response(
+        processed_files,
+        errors,
+        empty_message="No creatives could be adapted.",
+        zip_filename="dochase_adapted_creatives.zip",
+        error_filename="dochase_adapted_creatives_errors.zip",
+        custom_name=custom_name,
     )

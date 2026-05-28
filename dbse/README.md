@@ -1,11 +1,12 @@
 # Dochase Banner Stamping Engine (DBSE)
 
-DBSE is an internal tool with two banner workflows:
+DBSE is an internal tool with three banner workflows:
 
 - stamping a brand logo onto banner images
 - optimizing banner files to supported ad sizes under a 150 KB cap
+- adapting creatives into new target dimensions without stretching or cropping the original image
 
-It exposes a FastAPI backend for processing uploads and a lightweight browser UI for uploading banners, selecting the workflow, and downloading either a single processed banner or a ZIP for multi-banner batches.
+It exposes a FastAPI backend for processing uploads and a lightweight browser UI for stamping banners, optimizing banners, adapting creatives, and downloading either a single processed image or a ZIP for batch jobs.
 
 ## Architecture
 
@@ -23,9 +24,11 @@ It exposes a FastAPI backend for processing uploads and a lightweight browser UI
 dbse/
   backend/
     __init__.py
+    background_generators.py
     banner_optimizer.py
     main.py
     image_processor.py
+    resizer.py
     utils.py
   scripts/
     build_dist.py
@@ -36,6 +39,7 @@ dbse/
   tests/
     test_banner_optimizer.py
     test_image_processing.py
+    test_resizer.py
   requirements.txt
   README.md
 ```
@@ -45,8 +49,10 @@ dbse/
 - `backend/main.py` hosts the FastAPI app, serves the frontend, validates uploads, batches banner work, and returns either a single processed image or a ZIP archive.
 - `backend/banner_optimizer.py` contains supported banner-size rules, exact-multiple reduction logic, and size-constrained encoding for the optimizer workflow.
 - `backend/image_processor.py` contains the smart placement algorithm, a centralized processing settings block, logo sizing helpers, and compositing logic.
+- `backend/resizer.py` contains the creative adaptation engine: aspect-ratio-safe scaling, canvas expansion, output naming, and threaded batch processing.
+- `backend/background_generators.py` contains blur expansion, solid-fill parsing, and dominant color extraction.
 - `backend/utils.py` contains shared helpers for safe filenames, format handling, and in-memory ZIP packaging.
-- `frontend/index.html` provides a drag-and-drop upload UI and download flow for both workflows.
+- `frontend/index.html` provides a drag-and-drop UI for stamping, optimization, and creative adaptation with target presets and batch downloads.
 - `tests/test_image_processing.py` validates stamping placement, sizing, API behavior, and failure modes.
 - `tests/test_banner_optimizer.py` validates optimizer size mapping, exact-multiple reduction, and output-size constraints.
 
@@ -70,6 +76,31 @@ dbse/
 4. Each optimized banner is encoded to stay under `150 KB`.
 5. A single successful banner is returned directly as an image download.
 6. Multi-banner batches are packaged into a ZIP and returned as a downloadable response.
+
+### Creative adaptation flow
+
+1. The frontend sends one or many creative image files to `/resize`.
+2. The request includes one target size via `target_width` and `target_height`, or multiple target strings such as `300x250,728x90`.
+3. Each uploaded image is adapted independently for each target dimension.
+4. The foreground image is scaled proportionally using `Image.Resampling.LANCZOS`.
+5. The foreground is centered on the target canvas. It is never stretched and never cropped.
+6. Remaining canvas space is generated from the selected background mode.
+7. A single successful image/target is returned directly as an image download. Batch jobs return a ZIP.
+
+### Adaptation modes
+
+- `fit_expand` default: scales the full creative to fit inside the target and expands the canvas with the source image's dominant color.
+- `blur_expand`: scales a duplicate of the original to cover the target canvas, applies Gaussian blur, slightly darkens it, then overlays the sharp fitted creative centered on top.
+- `solid_background`: fills expanded canvas space with `background_color` such as `#ffffff`.
+- `dominant_color_background`: fills expanded canvas space with the dominant visible source color.
+
+### Quality rules
+
+- All resizing uses `Image.Resampling.LANCZOS`.
+- The foreground image always keeps its source aspect ratio.
+- JPEG output uses quality `95` with Pillow optimization.
+- PNG output is preserved for images with transparency.
+- Batch resize work uses a bounded thread pool and the API reads uploads in chunks to reduce peak memory pressure.
 
 ### Placement rules
 
@@ -115,7 +146,7 @@ The API and hosted UI will be available at `http://127.0.0.1:8000`.
 
 Preferred: visit `http://127.0.0.1:8000/` in a browser.
 
-Alternative: open `frontend/index.html` directly in a browser. When opened from disk, the page automatically targets `http://127.0.0.1:8000/process`.
+Alternative: open `frontend/index.html` directly in a browser. When opened from disk, the page automatically targets `http://127.0.0.1:8000` for all API workflows.
 
 ## Deployment
 
@@ -148,6 +179,28 @@ Upload the `dist/` folder to your static host, then use `dist/optimiser/index.ht
 Leave it empty when the frontend and API share the same origin.
 
 ## API
+
+### `POST /resize`
+
+Multipart form fields:
+
+- `images`: one or more creative image files
+- `target_width`: target width in pixels
+- `target_height`: target height in pixels
+- `targets`: optional repeated or comma-separated dimensions like `300x250,728x90`
+- `mode`: `fit_expand`, `blur_expand`, `solid_background`, or `dominant_color_background`
+- `background_color`: optional hex color for `solid_background`, for example `#ffffff`
+- `blur_radius`: optional number for `blur_expand`; default is `24`
+
+Aliases accepted for upload fields:
+
+- `image`, `files`, `creative`, `creatives`
+
+Response:
+
+- `200 OK` with a single processed image when one image and one target are uploaded successfully
+- `200 OK` with a ZIP file when multiple images or multiple targets are uploaded successfully
+- `422 Unprocessable Entity` with a ZIP containing `errors.txt` when no output could be produced
 
 ### `POST /process`
 
@@ -197,6 +250,7 @@ Response:
 
 - The backend processes banners independently to support batch workloads.
 - Stamping uses a bounded thread pool for image work without oversubscribing small batches.
+- Creative adaptation uses a bounded thread pool across image/target tasks.
 - Banner uploads are processed in chunks so the service does not hold all input files in memory at once.
 - Optimization currently runs in deterministic sequence because Pillow compression proved unstable under threaded batch encoding in local verification.
 - Optimizer output is encoded to meet a `150 KB` delivery budget for supported banner sizes.
