@@ -12,6 +12,15 @@ from typing import Iterable, Sequence
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
+def is_video_file(filename: str | None) -> bool:
+    """Return True if the filename has a supported video extension."""
+    if not filename:
+        return False
+    ext = Path(filename).suffix.lower()
+    return ext in {".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"}
+
+
+
 def sanitize_stem(filename: str | None, fallback: str = "image") -> str:
     """Return a filesystem- and zip-safe stem for an uploaded filename."""
 

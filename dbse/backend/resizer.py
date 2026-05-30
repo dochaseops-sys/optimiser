@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import os
+from pathlib import Path
 from typing import Sequence
 
 from PIL import Image
@@ -15,7 +16,13 @@ try:  # pragma: no cover - import shim for direct execution
         solid_background,
     )
     from .image_processor import load_image_bytes
-    from .utils import extension_for_format, normalize_format, sanitize_stem, save_image_to_bytes
+    from .utils import (
+        extension_for_format,
+        normalize_format,
+        sanitize_stem,
+        save_image_to_bytes,
+        is_video_file,
+    )
 except ImportError:  # pragma: no cover
     from background_generators import (
         blur_expand_background,
@@ -24,7 +31,13 @@ except ImportError:  # pragma: no cover
         solid_background,
     )
     from image_processor import load_image_bytes
-    from utils import extension_for_format, normalize_format, sanitize_stem, save_image_to_bytes
+    from utils import (
+        extension_for_format,
+        normalize_format,
+        sanitize_stem,
+        save_image_to_bytes,
+        is_video_file,
+    )
 
 
 try:
@@ -157,10 +170,149 @@ def adapt_image(
     return canvas
 
 
+def process_single_video_resize(task: ResizeTask) -> ResizeResult:
+    """Adapt a video to a target canvas size using the requested background mode."""
+    import tempfile
+    import numpy as np
+    from PIL import ImageFilter, ImageEnhance
+    from moviepy import VideoFileClip, ColorClip, CompositeVideoClip
+
+    source_name = sanitize_stem(task.filename)
+    ext = Path(task.filename).suffix.lower() if task.filename else ".mp4"
+
+    temp_in_path = None
+    temp_out_path = None
+    video = None
+    bg_video = None
+    bg_clip = None
+    resized_video = None
+    composited = None
+
+    try:
+        # Write input video bytes to temp file
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_in:
+            temp_in.write(task.image_bytes)
+            temp_in_path = temp_in.name
+
+        video = VideoFileClip(temp_in_path)
+        
+        target_width = task.target.width
+        target_height = task.target.height
+        
+        # Calculate proportional size
+        source_ratio = video.w / video.h
+        target_ratio = target_width / target_height
+
+        if source_ratio > target_ratio:
+            scaled_width = target_width
+            scaled_height = max(1, int(round(target_width / source_ratio)))
+        else:
+            scaled_height = target_height
+            scaled_width = max(1, int(round(target_height * source_ratio)))
+
+        resized_video = video.resized((scaled_width, scaled_height))
+        offset = ((target_width - scaled_width) // 2, (target_height - scaled_height) // 2)
+        resized_video = resized_video.with_position(offset)
+
+        normalized_mode = normalize_resize_mode(task.mode)
+        
+        if normalized_mode == BLUR_EXPAND:
+            scale = max(target_width / video.w, target_height / video.h)
+            fill_width = max(1, int(round(video.w * scale)))
+            fill_height = max(1, int(round(video.h * scale)))
+            bg_video = video.resized((fill_width, fill_height))
+            
+            # Crop to target size
+            bg_video = bg_video.cropped(
+                x_center=bg_video.w // 2,
+                y_center=bg_video.h // 2,
+                width=target_width,
+                height=target_height,
+            )
+            
+            # Apply blur and darken per frame
+            radius = task.blur_radius
+            def blur_and_darken_frame(frame_arr):
+                img = Image.fromarray(frame_arr)
+                if radius > 0:
+                    img = img.filter(ImageFilter.GaussianBlur(radius=radius))
+                img = ImageEnhance.Brightness(img).enhance(0.82)
+                return np.array(img)
+                
+            bg_clip = bg_video.image_transform(blur_and_darken_frame)
+            
+        elif normalized_mode in {FIT_EXPAND, DOMINANT_COLOR_BACKGROUND}:
+            first_frame_arr = video.get_frame(0)
+            first_frame_image = Image.fromarray(first_frame_arr)
+            dominant = extract_dominant_color(first_frame_image)
+            bg_clip = ColorClip(size=(target_width, target_height), color=dominant[:3], duration=video.duration)
+            
+        else: # solid_background
+            fill = parse_hex_color(task.background_color, fallback=DEFAULT_BACKGROUND_COLOR)
+            bg_clip = ColorClip(size=(target_width, target_height), color=fill[:3], duration=video.duration)
+
+        composited = CompositeVideoClip([bg_clip, resized_video])
+
+        # Write output video bytes to temp file
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
+            temp_out_path = temp_out.name
+
+        # Select codecs
+        codec = "libx264"
+        audio_codec = "aac"
+        if ext == ".webm":
+            codec = "libvpx"
+            audio_codec = "libvorbis"
+
+        composited.write_videofile(
+            temp_out_path,
+            codec=codec,
+            audio_codec=audio_codec if video.audio is not None else None,
+            logger=None,
+        )
+
+        # Read back processed bytes
+        with open(temp_out_path, "rb") as f:
+            output_bytes = f.read()
+
+        output_name = (
+            f"{source_name}_{target_width}x{target_height}_"
+            f"{normalized_mode}{ext}"
+        )
+        return ResizeResult(source_name, output_name, output_bytes, None)
+
+    except Exception as exc:
+        return ResizeResult(
+            source_name=source_name,
+            output_name=None,
+            output_bytes=None,
+            error=f"{task.filename or source_name} {task.target.width}x{task.target.height}: {exc}",
+        )
+
+    finally:
+        # Close all moviepy clips
+        for clip in (video, bg_video, bg_clip, resized_video, composited):
+            if clip:
+                try:
+                    clip.close()
+                except Exception:
+                    pass
+        # Clean up temp files
+        for path in (temp_in_path, temp_out_path):
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+
+
 def process_single_resize(task: ResizeTask) -> ResizeResult:
     """Process a single image/target adaptation task."""
 
     source_name = sanitize_stem(task.filename)
+
+    if is_video_file(task.filename):
+        return process_single_video_resize(task)
 
     try:
         image, image_format = load_image_bytes(task.image_bytes)

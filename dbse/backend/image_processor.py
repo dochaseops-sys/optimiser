@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 import os
+from pathlib import Path
 from typing import Sequence
 
 import numpy as np
@@ -15,6 +16,7 @@ try:  # pragma: no cover - import shim for direct execution
         normalize_format,
         sanitize_stem,
         save_image_to_bytes,
+        is_video_file,
     )
 except ImportError:  # pragma: no cover
     from utils import (
@@ -22,6 +24,7 @@ except ImportError:  # pragma: no cover
         normalize_format,
         sanitize_stem,
         save_image_to_bytes,
+        is_video_file,
     )
 
 
@@ -269,10 +272,126 @@ def _flatten_for_format(image: Image.Image, image_format: str) -> Image.Image:
     return background.convert("RGB")
 
 
+def process_single_video_banner(task: BannerTask) -> BannerResult:
+    """Process a single video banner by overlaying a logo on each frame."""
+    import tempfile
+    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
+
+    source_name = sanitize_stem(task.filename)
+    ext = Path(task.filename).suffix.lower() if task.filename else ".mp4"
+
+    temp_in_path = None
+    temp_logo_path = None
+    temp_out_path = None
+    video = None
+    logo_clip = None
+    composited = None
+
+    try:
+        # Write input video bytes to temp file
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_in:
+            temp_in.write(task.banner_bytes)
+            temp_in_path = temp_in.name
+
+        video = VideoFileClip(temp_in_path)
+        
+        # Get first frame as PIL Image for logo placement and size calculations
+        first_frame_arr = video.get_frame(0)
+        first_frame_image = Image.fromarray(first_frame_arr)
+        
+        # Size and position calculations (same as images)
+        banner_size = first_frame_image.size
+        logo_rgba = _prepare_logo(task.logo_image.copy(), banner_size)
+        placement = select_placement(
+            first_frame_image.convert("RGBA"),
+            logo_rgba.size,
+            task.placement_mode,
+        )
+
+        # Write logo to temp PNG file for moviepy ImageClip
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_logo:
+            logo_rgba.save(temp_logo.name, format="PNG")
+            temp_logo_path = temp_logo.name
+
+        logo_clip = (
+            ImageClip(temp_logo_path)
+            .with_duration(video.duration)
+            .with_position((placement.x, placement.y))
+        )
+
+        composited = CompositeVideoClip([video, logo_clip])
+
+        # Write output video bytes to temp file
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
+            temp_out_path = temp_out.name
+
+        # Select codecs
+        codec = "libx264"
+        audio_codec = "aac"
+        if ext == ".webm":
+            codec = "libvpx"
+            audio_codec = "libvorbis"
+
+        composited.write_videofile(
+            temp_out_path,
+            codec=codec,
+            audio_codec=audio_codec if video.audio is not None else None,
+            logger=None,
+        )
+
+        # Read back processed bytes
+        with open(temp_out_path, "rb") as f:
+            output_bytes = f.read()
+
+        output_name = f"{source_name}_processed{ext}"
+        return BannerResult(
+            source_name=source_name,
+            output_name=output_name,
+            output_bytes=output_bytes,
+            error=None,
+        )
+
+    except Exception as exc:
+        return BannerResult(
+            source_name=source_name,
+            output_name=None,
+            output_bytes=None,
+            error=f"{task.filename or source_name}: {exc}",
+        )
+
+    finally:
+        # Close all moviepy clips
+        if video:
+            try:
+                video.close()
+            except Exception:
+                pass
+        if logo_clip:
+            try:
+                logo_clip.close()
+            except Exception:
+                pass
+        if composited:
+            try:
+                composited.close()
+            except Exception:
+                pass
+        # Clean up temp files
+        for path in (temp_in_path, temp_logo_path, temp_out_path):
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+
+
 def process_single_banner(task: BannerTask) -> BannerResult:
     """Process a single banner and return a ZIP-ready result object."""
 
     source_name = sanitize_stem(task.filename)
+
+    if is_video_file(task.filename):
+        return process_single_video_banner(task)
 
     try:
         banner, banner_format = load_image_bytes(task.banner_bytes)

@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import Sequence
 
 from PIL import Image
 
 try:  # pragma: no cover - import shim for direct execution
     from .image_processor import load_image_bytes
-    from .utils import extension_for_format, sanitize_stem
+    from .utils import extension_for_format, sanitize_stem, is_video_file
 except ImportError:  # pragma: no cover
     from image_processor import load_image_bytes
-    from utils import extension_for_format, sanitize_stem
+    from utils import extension_for_format, sanitize_stem, is_video_file
 
 
 try:
@@ -167,10 +168,129 @@ def optimize_banner_bytes(
     return optimized, ("JPEG" if optimized is not None else None)
 
 
+def process_single_video_optimization(task: OptimizationTask) -> OptimizationResult:
+    """Resize a video banner to a supported target size and compress it below the size cap."""
+    import tempfile
+    import os
+    from moviepy import VideoFileClip
+
+    source_name = sanitize_stem(task.filename)
+    ext = Path(task.filename).suffix.lower() if task.filename else ".mp4"
+
+    temp_in_path = None
+    temp_out_path = None
+    video = None
+    resized_video = None
+
+    try:
+        # Write input video bytes to temp file
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_in:
+            temp_in.write(task.banner_bytes)
+            temp_in_path = temp_in.name
+
+        video = VideoFileClip(temp_in_path)
+        
+        target_size = resolve_target_dimensions((video.w, video.h))
+        if target_size is None:
+            allowed = ", ".join(
+                f"{width}x{height}"
+                for width, height in OPTIMIZATION_SETTINGS.supported_dimensions
+            )
+            raise ValueError(
+                f"unsupported banner size {video.w}x{video.h}; "
+                f"use one of the supported sizes or an exact multiple: {allowed}"
+            )
+
+        resized_video = video.resized(target_size)
+        duration = video.duration or 1.0
+
+        # Try to compress the video under the cap (150 KB)
+        target_bytes = OPTIMIZATION_SETTINGS.max_output_bytes
+        bitrate_factor = 0.9
+        output_bytes = None
+
+        # Codec setup
+        codec = "libx264"
+        audio_codec = "aac"
+        if ext == ".webm":
+            codec = "libvpx"
+            audio_codec = "libvorbis"
+
+        # Optimization loop to find a bitrate that fits the 150 KB limit
+        for attempt in range(3):
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
+                temp_out_path = temp_out.name
+
+            # Calculate bitrate in bps
+            available_bits = target_bytes * 8 * bitrate_factor
+            target_bitrate_bps = max(20000, int(available_bits / duration))
+
+            resized_video.write_videofile(
+                temp_out_path,
+                codec=codec,
+                bitrate=f"{target_bitrate_bps}",
+                audio_codec=audio_codec if video.audio is not None else None,
+                logger=None,
+            )
+
+            file_size = os.path.getsize(temp_out_path)
+            if file_size <= target_bytes:
+                with open(temp_out_path, "rb") as f:
+                    output_bytes = f.read()
+                os.unlink(temp_out_path)
+                temp_out_path = None
+                break
+            else:
+                # If size exceeded, reduce factor and clean up
+                os.unlink(temp_out_path)
+                temp_out_path = None
+                bitrate_factor *= 0.6
+
+        if output_bytes is None:
+            raise ValueError(
+                f"could not compress video banner to <= {target_bytes // 1024} KB"
+            )
+
+        output_name = f"{source_name}_optimized{ext}"
+        return OptimizationResult(
+            source_name=source_name,
+            output_name=output_name,
+            output_bytes=output_bytes,
+            error=None,
+        )
+
+    except Exception as exc:
+        return OptimizationResult(
+            source_name=source_name,
+            output_name=None,
+            output_bytes=None,
+            error=f"{task.filename or source_name}: {exc}",
+        )
+
+    finally:
+        # Close moviepy clips
+        for clip in (video, resized_video):
+            if clip:
+                try:
+                    clip.close()
+                except Exception:
+                    pass
+        # Clean up temp files
+        for path in (temp_in_path, temp_out_path):
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+
+
 def process_single_optimization(task: OptimizationTask) -> OptimizationResult:
     """Resize a banner to a supported target and compress it below the size cap."""
 
     source_name = sanitize_stem(task.filename)
+
+    if is_video_file(task.filename):
+        return process_single_video_optimization(task)
 
     try:
         banner, _ = load_image_bytes(task.banner_bytes)

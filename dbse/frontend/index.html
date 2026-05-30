@@ -539,7 +539,8 @@
       background-position: 0 0, 0 10px, 10px -10px, -10px 0;
     }
 
-    .output-stage img {
+    .output-stage img,
+    .output-stage video {
       display: block;
       max-width: 100%;
       max-height: 520px;
@@ -697,10 +698,10 @@
             <button class="btn-ghost" type="button" id="clearBannersBtn" disabled>Clear</button>
           </div>
           <div class="dropzone" id="bannerDropzone">
-            <input id="bannerInput" name="banners" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple>
+            <input id="bannerInput" name="banners" type="file" accept="image/*,video/*,.zip,application/zip,application/x-zip-compressed" multiple>
             <div>
               <strong id="bannerDropTitle">Banner images</strong>
-              <span id="bannerSectionCopy">PNG, JPG, WebP, ZIP</span>
+              <span id="bannerSectionCopy">PNG, JPG, WebP, MP4, WebM, ZIP</span>
             </div>
           </div>
           <div class="file-list" id="bannerList" aria-live="polite"></div>
@@ -839,7 +840,8 @@
         <div class="preview-body">
           <div class="output-stage">
             <img id="outputPreviewImage" alt="Processed output preview" hidden>
-            <div class="empty" id="outputPreviewEmpty">Run a single-image job to preview the output here.</div>
+            <video id="outputPreviewVideo" controls autoplay loop muted hidden></video>
+            <div class="empty" id="outputPreviewEmpty">Run a single-file job to preview the output here.</div>
           </div>
           <aside class="side">
             <section class="side-section">
@@ -918,6 +920,7 @@
       const placementState = document.getElementById('placementState');
       const readyState = document.getElementById('readyState');
       const outputPreviewImage = document.getElementById('outputPreviewImage');
+      const outputPreviewVideo = document.getElementById('outputPreviewVideo');
       const outputPreviewEmpty = document.getElementById('outputPreviewEmpty');
       const outputPreviewMeta = document.getElementById('outputPreviewMeta');
       const downloadLastBtn = document.getElementById('downloadLastBtn');
@@ -956,7 +959,7 @@
         optimize: `${resolvedApiBase}/optimize`,
         adapt: `${resolvedApiBase}/resize`
       };
-
+ 
       const state = {
         mode: 'stamp',
         banners: [],
@@ -965,32 +968,32 @@
         lastOutput: null,
         busy: false
       };
-
+ 
       const modeCopy = {
         stamp: {
-          heroLead: 'Add banner images, add a logo, choose where the logo should sit, and process the result.',
+          heroLead: 'Add banner files (images or videos), add a logo, choose where the logo should sit, and process the result.',
           modeDescription: 'Logo stamping',
           assetTitle: 'Banners',
-          assetDropTitle: 'Banner images',
-          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF',
+          assetDropTitle: 'Banner files',
+          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF, MP4, WebM',
           submitLabel: 'Stamp and Download',
           actionTitle: 'Logo',
           actionPill: 'Stamp',
           actionEmpty: 'No logo selected',
-          resultWaiting: 'Waiting for banner and logo',
+          resultWaiting: 'Waiting for banners and logo',
           previewMeta: 'Stamp workflow',
           initialStatus: 'Add at least one banner and a logo to continue.',
           workingStatus: 'Uploading files and stamping banners...',
-          successImage: 'Stamped image is ready.',
+          successImage: 'Stamped result is ready.',
           successArchive: 'Stamped ZIP is ready.',
           missingStatus: 'Add at least one banner and a logo to continue.'
         },
         optimize: {
-          heroLead: 'Add one or many banner images and optimize them for delivery.',
+          heroLead: 'Add one or many banner files (images or videos) and optimize them for delivery.',
           modeDescription: 'Delivery optimization',
           assetTitle: 'Banners',
-          assetDropTitle: 'Banner images',
-          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF',
+          assetDropTitle: 'Banner files',
+          assetTypes: 'PNG, JPG, WebP, GIF, BMP, TIFF, MP4, WebM',
           submitLabel: 'Optimize and Download',
           actionTitle: 'Optimizer',
           actionPill: 'Optimize',
@@ -999,16 +1002,16 @@
           previewMeta: 'Optimize workflow',
           initialStatus: 'Add at least one banner to continue.',
           workingStatus: 'Uploading files and optimizing banners...',
-          successImage: 'Optimized image is ready.',
+          successImage: 'Optimized result is ready.',
           successArchive: 'Optimized ZIP is ready.',
           missingStatus: 'Add at least one banner to continue.'
         },
         adapt: {
-          heroLead: 'Add one or many creatives, choose target dimensions, and resize without stretching or cropping.',
+          heroLead: 'Add one or many creatives (images or videos), choose target dimensions, and resize without stretching or cropping.',
           modeDescription: 'Creative adaptation',
           assetTitle: 'Creatives',
-          assetDropTitle: 'Creative images',
-          assetTypes: 'PNG, JPG, WebP, BMP, TIFF',
+          assetDropTitle: 'Creative files',
+          assetTypes: 'PNG, JPG, WebP, BMP, TIFF, MP4, WebM',
           submitLabel: 'Adapt and Download',
           actionTitle: 'Targets',
           actionPill: 'Adapt',
@@ -1017,7 +1020,7 @@
           previewMeta: 'Adapt workflow',
           initialStatus: 'Add at least one creative and one target size to continue.',
           workingStatus: 'Uploading files and adapting creatives...',
-          successImage: 'Adapted image is ready.',
+          successImage: 'Adapted result is ready.',
           successArchive: 'Adapted ZIP is ready.',
           missingStatus: 'Add at least one creative and one target size to continue.'
         }
@@ -1044,7 +1047,7 @@
         a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
       const keepImages = (files) =>
-        Array.from(files || []).filter((file) => file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip')));
+        Array.from(files || []).filter((file) => file && (file.type.startsWith('image/') || file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip') || /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(file.name)));
 
       const getModeCopy = () => modeCopy[state.mode];
 
@@ -1066,7 +1069,7 @@
       const getWorkItemCount = () =>
         state.mode === 'adapt' ? state.banners.length * state.targets.length : state.banners.length;
 
-      const getResultExpectation = (count) => (count === 1 ? 'Image output' : 'ZIP output');
+      const getResultExpectation = (count) => (count === 1 ? 'Result output' : 'ZIP output');
 
       const extensionFromName = (name) => {
         const match = /\.([a-z0-9]+)$/i.exec(name || '');
@@ -1083,7 +1086,13 @@
         if (normalized === 'image/gif') return 'gif';
         if (normalized === 'image/svg+xml') return 'svg';
         if (normalized === 'image/avif') return 'avif';
+        if (normalized === 'video/mp4') return 'mp4';
+        if (normalized === 'video/webm') return 'webm';
+        if (normalized === 'video/quicktime') return 'mov';
+        if (normalized === 'video/x-msvideo') return 'avi';
+        if (normalized === 'video/x-matroska') return 'mkv';
         if (normalized.startsWith('image/')) return normalized.slice(6).replace('+xml', '');
+        if (normalized.startsWith('video/')) return normalized.slice(6);
         return null;
       };
 
@@ -1115,8 +1124,12 @@
         state.lastOutput = null;
         outputPreviewImage.hidden = true;
         outputPreviewImage.removeAttribute('src');
+        if (outputPreviewVideo) {
+          outputPreviewVideo.hidden = true;
+          outputPreviewVideo.removeAttribute('src');
+        }
         outputPreviewEmpty.hidden = false;
-        outputPreviewEmpty.textContent = 'Run a single-image job to preview the output here.';
+        outputPreviewEmpty.textContent = 'Run a single-file job to preview the output here.';
         outputPreviewMeta.textContent = 'No output yet.';
         downloadLastBtn.disabled = true;
       };
@@ -1126,6 +1139,7 @@
 
         const url = URL.createObjectURL(result.blob);
         const isImage = /^image\//i.test(result.contentType || result.blob.type || '');
+        const isVideo = /^video\//i.test(result.contentType || result.blob.type || '') || /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(filename);
         const isArchive = isArchiveResponse(result, itemCount);
         state.lastOutput = { url, filename };
         downloadLastBtn.disabled = false;
@@ -1133,12 +1147,30 @@
         if (isImage && !isArchive) {
           outputPreviewImage.src = url;
           outputPreviewImage.hidden = false;
+          if (outputPreviewVideo) {
+            outputPreviewVideo.hidden = true;
+            outputPreviewVideo.removeAttribute('src');
+          }
+          outputPreviewEmpty.hidden = true;
+          outputPreviewMeta.textContent = filename;
+          return;
+        } else if (isVideo && !isArchive) {
+          if (outputPreviewVideo) {
+            outputPreviewVideo.src = url;
+            outputPreviewVideo.hidden = false;
+          }
+          outputPreviewImage.hidden = true;
+          outputPreviewImage.removeAttribute('src');
           outputPreviewEmpty.hidden = true;
           outputPreviewMeta.textContent = filename;
           return;
         }
 
         outputPreviewImage.hidden = true;
+        if (outputPreviewVideo) {
+          outputPreviewVideo.hidden = true;
+          outputPreviewVideo.removeAttribute('src');
+        }
         outputPreviewEmpty.hidden = false;
         outputPreviewEmpty.textContent = isArchive
           ? 'Batch ZIP is ready.'

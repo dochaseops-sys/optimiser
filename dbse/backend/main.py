@@ -280,7 +280,7 @@ async def process(request: Request) -> Response:
                         if zinfo.is_dir() or zinfo.filename.startswith("__MACOSX/") or zinfo.filename.split("/")[-1].startswith("."):
                             continue
                         ext = zinfo.filename.lower().rpartition(".")[-1]
-                        if ext not in {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif"}:
+                        if ext not in {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "mp4", "webm", "mov", "avi", "mkv", "m4v"}:
                             continue
                         
                         file_data = zf.read(zinfo.filename)
@@ -293,7 +293,7 @@ async def process(request: Request) -> Response:
 
     if not banner_files:
         return _error_zip_response(
-            ["No valid banner images found in the upload."] + errors,
+            ["No valid banner images or videos found in the upload."] + errors,
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             filename="dbse_processed_banners_errors.zip",
         )
