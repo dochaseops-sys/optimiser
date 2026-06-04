@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.banner_optimizer import OPTIMIZATION_SETTINGS, resolve_target_dimensions
+from backend.banner_optimizer import OPTIMIZATION_SETTINGS, resolve_target_dimensions, parse_dimension_from_filename
 from backend.main import app
 
 
@@ -49,6 +49,16 @@ def test_resolve_target_dimensions_reduces_exact_multiples() -> None:
 def test_resolve_target_dimensions_rejects_unsupported_sizes() -> None:
     assert resolve_target_dimensions((301, 251)) is None
     assert resolve_target_dimensions((640, 120)) is None
+
+
+def test_parse_dimension_from_filename() -> None:
+    assert parse_dimension_from_filename("banner_300x250.png") == (300, 250)
+    assert parse_dimension_from_filename("banner_300 x 250_final.jpg") == (300, 250)
+    assert parse_dimension_from_filename("320x100_banner.png") == (320, 100)
+    assert parse_dimension_from_filename("120_x_600_dochase_smart_banking.png") == (120, 600)
+    assert parse_dimension_from_filename("970_x_90_dochase_smart_banking.png") == (970, 90)
+    assert parse_dimension_from_filename("no_dimensions.png") is None
+    assert parse_dimension_from_filename("banner_400x400.png") is None
 
 
 def test_optimize_endpoint_returns_single_file_under_150kb_and_resized() -> None:
@@ -108,3 +118,23 @@ def test_optimize_endpoint_returns_error_zip_for_unsupported_banner() -> None:
 
     assert "errors.txt" in names
     assert "unsupported banner size 301x251" in archive.read("errors.txt").decode("utf-8")
+
+
+def test_optimize_endpoint_resolves_via_filename() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/optimize",
+        files=[
+            (
+                "banners",
+                ("my_banner_300x250_final.png", _make_image_bytes((400, 300), noisy=True), "image/png"),
+            ),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert len(response.content) <= OPTIMIZATION_SETTINGS.max_output_bytes
+
+    optimized = Image.open(io.BytesIO(response.content))
+    assert optimized.size == (300, 250)

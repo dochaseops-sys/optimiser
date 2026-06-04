@@ -122,7 +122,7 @@ def test_choose_position_prefers_the_lower_noise_corner() -> None:
 
 @pytest.mark.parametrize("placement_mode", ["top-left", "top-right"])
 def test_process_single_banner_places_logo_only_in_allowed_corner(placement_mode: str) -> None:
-    banner_bytes = _make_image_bytes((1000, 400), color=(255, 255, 255, 255))
+    banner_bytes = _make_image_bytes((1200, 628), color=(255, 255, 255, 255))
     logo = Image.new("RGBA", (200, 100), (255, 0, 0, 255))
     result = process_single_banner(
         BannerTask(
@@ -138,15 +138,15 @@ def test_process_single_banner_places_logo_only_in_allowed_corner(placement_mode
 
     processed_image, _ = load_image_bytes(result.output_bytes)
     left, top, right, bottom = _red_bounds(processed_image)
-    logo_width, logo_height = calculate_logo_size((1000, 400), logo.size)
+    logo_width, logo_height = calculate_logo_size((1200, 628), logo.size)
     margin = 0
-    expected_left = margin if placement_mode == "top-left" else 1000 - margin - logo_width
+    expected_left = margin if placement_mode == "top-left" else 1200 - margin - logo_width
 
     assert left == expected_left
     assert top == margin
     assert (right - left + 1, bottom - top + 1) == (logo_width, logo_height)
 
-    opposite_corner_x = 1000 - margin - 1 if placement_mode == "top-left" else margin
+    opposite_corner_x = 1200 - margin - 1 if placement_mode == "top-left" else margin
     opposite_pixel = processed_image.convert("RGBA").getpixel((opposite_corner_x, margin))
     assert opposite_pixel[:3] == (255, 255, 255)
 
@@ -194,8 +194,8 @@ def test_process_single_banner_returns_an_error_for_corrupted_banner() -> None:
 
 def test_process_endpoint_returns_a_downloadable_zip() -> None:
     client = TestClient(app)
-    banner_one = _make_image_bytes((1200, 400))
-    banner_two = _make_image_bytes((900, 300))
+    banner_one = _make_image_bytes((1200, 628))
+    banner_two = _make_image_bytes((600, 600))
     logo = _make_image_bytes((240, 120), color=(255, 0, 0, 255))
 
     response = client.post(
@@ -225,7 +225,7 @@ def test_process_endpoint_returns_single_image_for_single_banner() -> None:
         "/process",
         data={"placement_mode": "top-left"},
         files=[
-            ("banners", ("banner.png", _make_image_bytes((1200, 400)), "image/png")),
+            ("banners", ("banner.png", _make_image_bytes((1200, 628)), "image/png")),
             ("logo", ("logo.png", _make_image_bytes((240, 120), color=(255, 0, 0, 255)), "image/png")),
         ],
     )
@@ -241,7 +241,7 @@ def test_process_endpoint_accepts_frontend_alias_field_name() -> None:
         "/process",
         data={"placement": "top-left"},
         files=[
-            ("banners", ("banner.png", _make_image_bytes((1200, 400)), "image/png")),
+            ("banners", ("banner.png", _make_image_bytes((1200, 628)), "image/png")),
             ("logo", ("logo.png", _make_image_bytes((240, 120), color=(255, 0, 0, 255)), "image/png")),
         ],
     )
@@ -278,8 +278,8 @@ def test_optimiser_route_serves_the_ui() -> None:
 
 def test_process_endpoint_accepts_zip_file() -> None:
     client = TestClient(app)
-    banner_one = _make_image_bytes((1200, 400))
-    banner_two = _make_image_bytes((900, 300))
+    banner_one = _make_image_bytes((1200, 628))
+    banner_two = _make_image_bytes((600, 600))
     
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
@@ -316,20 +316,20 @@ def test_process_endpoint_uses_custom_name_for_single_file() -> None:
         "/process",
         data={"placement_mode": "top-left", "custom_name": "my-special-banner"},
         files=[
-            ("banners", ("banner.png", _make_image_bytes((1200, 400)), "image/png")),
+            ("banners", ("banner.png", _make_image_bytes((1200, 628)), "image/png")),
             ("logo", ("logo.png", _make_image_bytes((240, 120), color=(255, 0, 0, 255)), "image/png")),
         ],
     )
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
-    assert 'filename="my-special-banner.png"' in response.headers["content-disposition"]
+    assert 'filename="banner_my-special-banner.png"' in response.headers["content-disposition"]
 
 
 def test_process_endpoint_uses_custom_name_for_zip() -> None:
     client = TestClient(app)
-    banner_one = _make_image_bytes((1200, 400))
-    banner_two = _make_image_bytes((900, 300))
+    banner_one = _make_image_bytes((1200, 628))
+    banner_two = _make_image_bytes((600, 600))
     logo = _make_image_bytes((240, 120), color=(255, 0, 0, 255))
 
     response = client.post(
@@ -345,4 +345,70 @@ def test_process_endpoint_uses_custom_name_for_zip() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
     assert 'filename="my-campaign-folder.zip"' in response.headers["content-disposition"]
+
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    names = sorted(archive.namelist())
+    assert "banner-1_my-campaign-folder.png" in names
+    assert "banner-2_my-campaign-folder.png" in names
+
+
+def test_process_single_banner_uses_custom_name() -> None:
+    banner_bytes = _make_image_bytes((300, 250), color=(0, 0, 0, 255))
+    logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="custom_test.png",
+        banner_bytes=banner_bytes,
+        logo_image=logo,
+        placement_mode="top-left",
+        custom_name="hello-world",
+    )
+    result = process_single_banner(task)
+    assert result.error is None
+    assert result.output_name == "custom_test_hello-world.png"
+
+
+def test_process_single_banner_exception_bypasses_optimizer() -> None:
+    banner_bytes = _make_image_bytes((1200, 628), color=(0, 0, 0, 255))
+    logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="facebook_ad.png",
+        banner_bytes=banner_bytes,
+        logo_image=logo,
+        placement_mode="top-left",
+    )
+    result = process_single_banner(task)
+    assert result.error is None
+    # Dimension remains 1200x628 because it bypassed optimization
+    img, _ = load_image_bytes(result.output_bytes)
+    assert img.size == (1200, 628)
+
+
+def test_process_single_banner_non_exception_triggers_optimizer() -> None:
+    banner_bytes = _make_image_bytes((900, 750), color=(0, 0, 0, 255))
+    logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="banner.png",
+        banner_bytes=banner_bytes,
+        logo_image=logo,
+        placement_mode="top-left",
+    )
+    result = process_single_banner(task)
+    assert result.error is None
+    # 900x750 is a multiple of 300x250, so it gets optimized/resized to 300x250
+    img, _ = load_image_bytes(result.output_bytes)
+    assert img.size == (300, 250)
+
+
+def test_process_single_banner_unsupported_non_exception_fails() -> None:
+    banner_bytes = _make_image_bytes((1000, 400), color=(0, 0, 0, 255))
+    logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="unsupported.png",
+        banner_bytes=banner_bytes,
+        logo_image=logo,
+        placement_mode="top-left",
+    )
+    result = process_single_banner(task)
+    assert result.error is not None
+    assert "unsupported banner size" in result.error
 

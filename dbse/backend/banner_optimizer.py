@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+import re
 from typing import Sequence
 
 from PIL import Image
@@ -31,6 +32,7 @@ class BannerOptimizationSettings:
         (300, 50),
         (300, 600),
         (970, 250),
+        (970, 90),
         (120, 600),
         (160, 600),
         (250, 250),
@@ -87,6 +89,20 @@ def resolve_target_dimensions(size: tuple[int, int]) -> tuple[int, int] | None:
         return None
 
     return max(matches, key=lambda item: item[0])[2]
+
+
+def parse_dimension_from_filename(filename: str | None) -> tuple[int, int] | None:
+    """Parse target dimensions from filename if it contains a supported size."""
+    if not filename:
+        return None
+
+    # Matches pattern like 300x250, 300_x_250, 300-x-250, 300 x 250, etc.
+    matches = re.findall(r"(\d+)\s*[_.-]?\s*[xX]\s*[_.-]?\s*(\d+)", filename)
+    for w_str, h_str in matches:
+        w, h = int(w_str), int(h_str)
+        if (w, h) in OPTIMIZATION_SETTINGS.supported_dimensions:
+            return (w, h)
+    return None
 
 
 def _has_alpha(image: Image.Image) -> bool:
@@ -192,6 +208,9 @@ def process_single_video_optimization(task: OptimizationTask) -> OptimizationRes
         
         target_size = resolve_target_dimensions((video.w, video.h))
         if target_size is None:
+            target_size = parse_dimension_from_filename(task.filename)
+            
+        if target_size is None:
             allowed = ", ".join(
                 f"{width}x{height}"
                 for width, height in OPTIMIZATION_SETTINGS.supported_dimensions
@@ -295,6 +314,9 @@ def process_single_optimization(task: OptimizationTask) -> OptimizationResult:
     try:
         banner, _ = load_image_bytes(task.banner_bytes)
         target_size = resolve_target_dimensions(banner.size)
+        if target_size is None:
+            target_size = parse_dimension_from_filename(task.filename)
+
         if target_size is None:
             allowed = ", ".join(
                 f"{width}x{height}"

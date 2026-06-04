@@ -145,6 +145,7 @@ def _download_response(
     zip_filename: str,
     error_filename: str,
     custom_name: str | None = None,
+    append_custom_name: bool = False,
 ) -> Response:
     if not processed_files:
         return _error_zip_response(
@@ -157,8 +158,9 @@ def _download_response(
         stem = sanitize_stem(custom_name)
         if len(processed_files) == 1 and not errors:
             output_name, output_bytes = processed_files[0]
-            ext = Path(output_name).suffix
-            output_name = f"{stem}{ext}"
+            if not append_custom_name:
+                ext = Path(output_name).suffix
+                output_name = f"{stem}{ext}"
             headers = {"Content-Disposition": f'attachment; filename="{output_name}"'}
             return Response(
                 content=output_bytes,
@@ -311,6 +313,7 @@ async def process(request: Request) -> Response:
                     banner_bytes=banner_bytes,
                     logo_image=logo_image,
                     placement_mode=placement_mode,
+                    custom_name=custom_name,
                 )
             )
 
@@ -327,6 +330,7 @@ async def process(request: Request) -> Response:
         zip_filename="dbse_processed_banners.zip",
         error_filename="dbse_processed_banners_errors.zip",
         custom_name=custom_name,
+        append_custom_name=True,
     )
 
 

@@ -121,3 +121,91 @@ def test_main_process_endpoint_accepts_video() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "video/mp4"
     assert 'filename="video_banner_processed.mp4"' in response.headers["content-disposition"]
+
+
+def test_process_video_banner_stamping_uses_custom_name() -> None:
+    video_bytes = _make_test_video_bytes((300, 250))
+    logo_image = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    
+    task = BannerTask(
+        filename="test_banner.mp4",
+        banner_bytes=video_bytes,
+        logo_image=logo_image,
+        placement_mode="top-right",
+        custom_name="camp-123",
+    )
+    result = process_single_banner(task)
+    
+    assert result.error is None
+    assert result.output_name == "test_banner_camp-123.mp4"
+
+
+def test_process_video_optimization_resolves_via_filename() -> None:
+    # 400x300 is not a multiple of any supported size, but filename has 300x250
+    video_bytes = _make_test_video_bytes((400, 300))
+    task = OptimizationTask(
+        filename="banner_300x250_camp.mp4",
+        banner_bytes=video_bytes,
+    )
+    result = process_single_optimization(task)
+    
+    assert result.error is None
+    assert result.output_name == "banner_300x250_camp_optimized.mp4"
+    assert result.output_bytes is not None
+    assert len(result.output_bytes) <= 150 * 1024
+
+
+def test_process_single_video_banner_exception_bypasses_optimizer() -> None:
+    video_bytes = _make_test_video_bytes((600, 600))
+    logo_image = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="test_video_square.mp4",
+        banner_bytes=video_bytes,
+        logo_image=logo_image,
+        placement_mode="top-right",
+    )
+    result = process_single_banner(task)
+    assert result.error is None
+    # Verify the video size remains 600x600 (not compressed or resized to supported sizes)
+    from moviepy import VideoFileClip
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        f.write(result.output_bytes)
+        path = f.name
+    try:
+        clip = VideoFileClip(path)
+        assert clip.size == [600, 600]
+        clip.close()
+    finally:
+        import os
+        if os.path.exists(path):
+            os.unlink(path)
+
+
+def test_process_single_video_banner_non_exception_triggers_optimizer() -> None:
+    # 600x500 is a multiple of supported size 300x250
+    video_bytes = _make_test_video_bytes((600, 500))
+    logo_image = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
+    task = BannerTask(
+        filename="test_video_multiple.mp4",
+        banner_bytes=video_bytes,
+        logo_image=logo_image,
+        placement_mode="top-right",
+    )
+    result = process_single_banner(task)
+    assert result.error is None
+    # Verify the video size gets resized to 300x250 and compressed <= 150 KB
+    from moviepy import VideoFileClip
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        f.write(result.output_bytes)
+        path = f.name
+    try:
+        clip = VideoFileClip(path)
+        assert clip.size == [300, 250]
+        clip.close()
+    finally:
+        import os
+        if os.path.exists(path):
+            os.unlink(path)
+    assert len(result.output_bytes) <= 150 * 1024
