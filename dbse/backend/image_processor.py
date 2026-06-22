@@ -302,7 +302,10 @@ def process_single_video_banner(task: BannerTask) -> BannerResult:
         video_to_stamp = video
         is_optimized = False
         
-        if banner_size not in exceptions:
+        # Banners with width >= 1080 are not scaled down
+        is_wide_banner = banner_size[0] >= 1080
+        
+        if banner_size not in exceptions and not is_wide_banner:
             from .banner_optimizer import resolve_target_dimensions, parse_dimension_from_filename
             target_size = resolve_target_dimensions(banner_size)
             if target_size is None:
@@ -463,7 +466,10 @@ def process_single_banner(task: BannerTask) -> BannerResult:
         banner_to_stamp = banner_rgba
         is_optimized = False
         
-        if banner_rgba.size not in exceptions:
+        # Banners with width >= 1080 are not scaled down
+        is_wide_banner = banner_rgba.width >= 1080
+        
+        if banner_rgba.size not in exceptions and not is_wide_banner:
             from .banner_optimizer import resolve_target_dimensions, parse_dimension_from_filename
             target_size = resolve_target_dimensions(banner_rgba.size)
             if target_size is None:

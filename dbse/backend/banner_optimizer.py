@@ -62,9 +62,18 @@ class OptimizationResult:
 
 
 def resolve_target_dimensions(size: tuple[int, int]) -> tuple[int, int] | None:
-    """Resolve a banner size to a supported target or a larger proportional version of one."""
+    """Resolve a banner size to a supported target or a larger proportional version of one.
+
+    Banners whose width is >= 1080 px are never scaled down; None is returned so
+    callers treat them as already at the correct size.
+    """
 
     width, height = size
+
+    # Do not scale down wide banners (e.g. 1080p and above)
+    if width >= 1080:
+        return None
+
     matches: list[tuple[int, int, tuple[int, int]]] = []
 
     for target_width, target_height in OPTIMIZATION_SETTINGS.supported_dimensions:
