@@ -6,3 +6,4 @@ numpy>=1.26,<3
 pytest>=8,<9
 httpx>=0.27,<1
 moviepy>=2.2.1
+a2wsgi
