@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/dbse/dist/index.html" },
+    { "source": "/optimiser", "destination": "/dbse/dist/optimiser/index.html" },
+    { "source": "/optimiser/", "destination": "/dbse/dist/optimiser/index.html" }
+  ]
+}
