@@ -1,8 +1,22 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/dbse/dist" },
-    { "source": "/optimiser", "destination": "/dbse/dist/optimiser" },
-    { "source": "/optimiser/", "destination": "/dbse/dist/optimiser" }
+  "version": 2,
+  "builds": [
+    {
+      "src": "dbse/backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "dbse/dist/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/process", "dest": "dbse/backend/main.py" },
+    { "src": "/optimize", "dest": "dbse/backend/main.py" },
+    { "src": "/resize", "dest": "dbse/backend/main.py" },
+    { "src": "/health", "dest": "dbse/backend/main.py" },
+    { "src": "/optimiser", "dest": "dbse/dist/optimiser/index.html" },
+    { "src": "/optimiser/", "dest": "dbse/dist/optimiser/index.html" },
+    { "src": "/(.*)", "dest": "dbse/dist/$1" }
   ]
 }
