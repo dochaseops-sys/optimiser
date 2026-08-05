@@ -367,23 +367,7 @@ def test_process_single_banner_uses_custom_name() -> None:
     assert result.output_name == "custom_test_hello-world.png"
 
 
-def test_process_single_banner_exception_bypasses_optimizer() -> None:
-    banner_bytes = _make_image_bytes((1200, 628), color=(0, 0, 0, 255))
-    logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-    task = BannerTask(
-        filename="facebook_ad.png",
-        banner_bytes=banner_bytes,
-        logo_image=logo,
-        placement_mode="top-left",
-    )
-    result = process_single_banner(task)
-    assert result.error is None
-    # Dimension remains 1200x628 because it bypassed optimization
-    img, _ = load_image_bytes(result.output_bytes)
-    assert img.size == (1200, 628)
-
-
-def test_process_single_banner_non_exception_triggers_optimizer() -> None:
+def test_process_single_banner_preserves_original_dimensions() -> None:
     banner_bytes = _make_image_bytes((900, 750), color=(0, 0, 0, 255))
     logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     task = BannerTask(
@@ -394,21 +378,23 @@ def test_process_single_banner_non_exception_triggers_optimizer() -> None:
     )
     result = process_single_banner(task)
     assert result.error is None
-    # 900x750 is a multiple of 300x250, so it gets optimized/resized to 300x250
+    # Verify original dimensions (900x750) are preserved without auto-resizing
     img, _ = load_image_bytes(result.output_bytes)
-    assert img.size == (300, 250)
+    assert img.size == (900, 750)
 
 
-def test_process_single_banner_unsupported_non_exception_fails() -> None:
+def test_process_single_banner_accepts_any_banner_size() -> None:
     banner_bytes = _make_image_bytes((1000, 400), color=(0, 0, 0, 255))
     logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     task = BannerTask(
-        filename="unsupported.png",
+        filename="banner_1000x400.png",
         banner_bytes=banner_bytes,
         logo_image=logo,
         placement_mode="top-left",
     )
     result = process_single_banner(task)
-    assert result.error is not None
-    assert "unsupported banner size" in result.error
+    assert result.error is None
+    img, _ = load_image_bytes(result.output_bytes)
+    assert img.size == (1000, 400)
+
 

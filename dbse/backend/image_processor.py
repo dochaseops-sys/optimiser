@@ -300,27 +300,6 @@ def process_single_video_banner(task: BannerTask) -> BannerResult:
         exceptions = {(1200, 628), (600, 600), (1080, 1080), (1080, 1920), (1920, 1080)}
         
         video_to_stamp = video
-        is_optimized = False
-        
-        # Banners with width >= 1080 are not scaled down
-        is_wide_banner = banner_size[0] >= 1080
-        
-        if banner_size not in exceptions and not is_wide_banner:
-            from .banner_optimizer import resolve_target_dimensions, parse_dimension_from_filename
-            target_size = resolve_target_dimensions(banner_size)
-            if target_size is None:
-                target_size = parse_dimension_from_filename(task.filename)
-                
-            if target_size is None:
-                from .banner_optimizer import OPTIMIZATION_SETTINGS
-                allowed = ", ".join(f"{w}x{h}" for w, h in OPTIMIZATION_SETTINGS.supported_dimensions)
-                raise ValueError(
-                    f"unsupported banner size {banner_size[0]}x{banner_size[1]}; "
-                    f"use one of the supported sizes, an exact multiple, or name the file with target dimensions: {allowed}"
-                )
-            
-            video_to_stamp = video.resized(target_size)
-            is_optimized = True
 
         # Get first frame as PIL Image for logo placement and size calculations
         first_frame_arr = video_to_stamp.get_frame(0)
@@ -354,58 +333,18 @@ def process_single_video_banner(task: BannerTask) -> BannerResult:
             codec = "libvpx"
             audio_codec = "libvorbis"
 
-        output_bytes = None
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
+            temp_out_path = temp_out.name
 
-        if is_optimized:
-            from .banner_optimizer import OPTIMIZATION_SETTINGS
-            target_bytes = OPTIMIZATION_SETTINGS.max_output_bytes
-            bitrate_factor = 0.9
-            duration = video_to_stamp.duration or 1.0
+        composited.write_videofile(
+            temp_out_path,
+            codec=codec,
+            audio_codec=audio_codec if video.audio is not None else None,
+            logger=None,
+        )
 
-            for attempt in range(3):
-                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
-                    temp_out_path = temp_out.name
-
-                available_bits = target_bytes * 8 * bitrate_factor
-                target_bitrate_bps = max(20000, int(available_bits / duration))
-
-                composited.write_videofile(
-                    temp_out_path,
-                    codec=codec,
-                    bitrate=f"{target_bitrate_bps}",
-                    audio_codec=audio_codec if video.audio is not None else None,
-                    logger=None,
-                )
-
-                file_size = os.path.getsize(temp_out_path)
-                if file_size <= target_bytes:
-                    with open(temp_out_path, "rb") as f:
-                         output_bytes = f.read()
-                    os.unlink(temp_out_path)
-                    temp_out_path = None
-                    break
-                else:
-                    os.unlink(temp_out_path)
-                    temp_out_path = None
-                    bitrate_factor *= 0.6
-
-            if output_bytes is None:
-                raise ValueError(
-                    f"could not compress video banner to <= {target_bytes // 1024} KB"
-                )
-        else:
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_out:
-                temp_out_path = temp_out.name
-
-            composited.write_videofile(
-                temp_out_path,
-                codec=codec,
-                audio_codec=audio_codec if video.audio is not None else None,
-                logger=None,
-            )
-
-            with open(temp_out_path, "rb") as f:
-                output_bytes = f.read()
+        with open(temp_out_path, "rb") as f:
+            output_bytes = f.read()
 
         suffix = f"_{sanitize_stem(task.custom_name)}" if task.custom_name else "_processed"
         output_name = f"{source_name}{suffix}{ext}"
@@ -461,31 +400,7 @@ def process_single_banner(task: BannerTask) -> BannerResult:
     try:
         banner, banner_format = load_image_bytes(task.banner_bytes)
         banner_rgba = banner.convert("RGBA")
-        
-        exceptions = {(1200, 628), (600, 600), (1080, 1080), (1080, 1920), (1920, 1080)}
         banner_to_stamp = banner_rgba
-        is_optimized = False
-        
-        # Banners with width >= 1080 are not scaled down
-        is_wide_banner = banner_rgba.width >= 1080
-        
-        if banner_rgba.size not in exceptions and not is_wide_banner:
-            from .banner_optimizer import resolve_target_dimensions, parse_dimension_from_filename
-            target_size = resolve_target_dimensions(banner_rgba.size)
-            if target_size is None:
-                target_size = parse_dimension_from_filename(task.filename)
-                
-            if target_size is None:
-                from .banner_optimizer import OPTIMIZATION_SETTINGS
-                allowed = ", ".join(f"{w}x{h}" for w, h in OPTIMIZATION_SETTINGS.supported_dimensions)
-                raise ValueError(
-                    f"unsupported banner size {banner_rgba.width}x{banner_rgba.height}; "
-                    f"use one of the supported sizes, an exact multiple, or name the file with target dimensions: {allowed}"
-                )
-            
-            from .banner_optimizer import _resize_banner
-            banner_to_stamp = _resize_banner(banner_rgba, target_size)
-            is_optimized = True
 
         logo_rgba = _prepare_logo(task.logo_image.copy(), banner_to_stamp.size)
         placement = select_placement(
@@ -501,15 +416,7 @@ def process_single_banner(task: BannerTask) -> BannerResult:
         final_image = _flatten_for_format(composited, output_format)
         
         suffix = f"_{sanitize_stem(task.custom_name)}" if task.custom_name else "_processed"
-        
-        if is_optimized:
-            from .banner_optimizer import optimize_banner_bytes
-            output_bytes, opt_format = optimize_banner_bytes(final_image)
-            if output_bytes is None or opt_format is None:
-                raise ValueError("could not compress banner to <= 150 KB")
-            output_format = opt_format
-        else:
-            output_bytes = save_image_to_bytes(final_image, output_format)
+        output_bytes = save_image_to_bytes(final_image, output_format)
 
         output_name = f"{source_name}{suffix}.{extension_for_format(output_format)}"
 

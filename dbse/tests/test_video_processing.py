@@ -155,35 +155,7 @@ def test_process_video_optimization_resolves_via_filename() -> None:
     assert len(result.output_bytes) <= 150 * 1024
 
 
-def test_process_single_video_banner_exception_bypasses_optimizer() -> None:
-    video_bytes = _make_test_video_bytes((600, 600))
-    logo_image = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-    task = BannerTask(
-        filename="test_video_square.mp4",
-        banner_bytes=video_bytes,
-        logo_image=logo_image,
-        placement_mode="top-right",
-    )
-    result = process_single_banner(task)
-    assert result.error is None
-    # Verify the video size remains 600x600 (not compressed or resized to supported sizes)
-    from moviepy import VideoFileClip
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
-        f.write(result.output_bytes)
-        path = f.name
-    try:
-        clip = VideoFileClip(path)
-        assert clip.size == [600, 600]
-        clip.close()
-    finally:
-        import os
-        if os.path.exists(path):
-            os.unlink(path)
-
-
-def test_process_single_video_banner_non_exception_triggers_optimizer() -> None:
-    # 600x500 is a multiple of supported size 300x250
+def test_process_single_video_banner_preserves_original_dimensions() -> None:
     video_bytes = _make_test_video_bytes((600, 500))
     logo_image = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     task = BannerTask(
@@ -194,7 +166,7 @@ def test_process_single_video_banner_non_exception_triggers_optimizer() -> None:
     )
     result = process_single_banner(task)
     assert result.error is None
-    # Verify the video size gets resized to 300x250 and compressed <= 150 KB
+    # Verify the video size retains original 600x500 dimensions
     from moviepy import VideoFileClip
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
@@ -202,10 +174,10 @@ def test_process_single_video_banner_non_exception_triggers_optimizer() -> None:
         path = f.name
     try:
         clip = VideoFileClip(path)
-        assert clip.size == [300, 250]
+        assert clip.size == [600, 500]
         clip.close()
     finally:
         import os
         if os.path.exists(path):
             os.unlink(path)
-    assert len(result.output_bytes) <= 150 * 1024
+
