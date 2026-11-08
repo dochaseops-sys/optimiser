@@ -187,7 +187,7 @@ def _download_response(
     if not processed_files:
         return _error_zip_response(
             errors or [empty_message],
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
             filename=error_filename,
         )
 
@@ -195,7 +195,7 @@ def _download_response(
         try:
             processed_files = _expand_output_folders(processed_files, folder_names)
         except ValueError as exc:
-            return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_CONTENT, filename=error_filename)
+            return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY, filename=error_filename)
 
     if custom_name:
         stem = sanitize_stem(custom_name)
@@ -251,7 +251,7 @@ async def process(request: Request) -> Response:
     try:
         custom_name, folder_names = _get_output_names(form)
     except ValueError as exc:
-        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_CONTENT)
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     placement_mode_raw = _first_text(form, ("placement_mode", "placement"))
     if not placement_mode_raw:
@@ -387,7 +387,7 @@ async def optimize(request: Request) -> Response:
     try:
         custom_name, folder_names = _get_output_names(form)
     except ValueError as exc:
-        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_CONTENT)
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     banner_uploads = _collect_uploads(
         form,
@@ -444,7 +444,7 @@ async def resize(request: Request) -> Response:
     try:
         custom_name, folder_names = _get_output_names(form)
     except ValueError as exc:
-        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_CONTENT)
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     mode = normalize_resize_mode(_first_text(form, ("mode", "resize_mode")))
     if mode not in ALLOWED_RESIZE_MODES:
