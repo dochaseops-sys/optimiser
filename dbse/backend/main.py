@@ -137,6 +137,42 @@ def _all_text(form: Any, keys: Iterable[str]) -> list[str]:
     return values
 
 
+MAX_CUSTOM_FOLDERS = 100
+MAX_FOLDER_OUTPUT_BYTES = 250 * 1024 * 1024
+
+
+def _get_output_names(form: Any) -> tuple[str | None, list[str]]:
+    """Return a legacy single name or deduplicated safe folder names."""
+    raw = _all_text(form, ("custom_names",))
+    if not raw:
+        raw = _all_text(form, ("custom_name", "output_name"))
+    entries = [name.strip() for value in raw for name in value.replace("\r", "\n").split("\n") if name.strip()]
+    if len(entries) > MAX_CUSTOM_FOLDERS:
+        raise ValueError(f"Maximum {MAX_CUSTOM_FOLDERS} custom folder names allowed.")
+    names = []
+    for name in entries:
+        if len(name) > 100:
+            raise ValueError("Each custom folder name must be at most 100 characters.")
+        # Avoid absolute paths, traversal, and ZIP directory separators.
+        clean = sanitize_stem(name)
+        if clean not in names:
+            names.append(clean)
+    if len(names) > 1:
+        return None, names
+    return (names[0] if names else None), []
+
+
+def _expand_output_folders(
+    processed_files: list[tuple[str, bytes]], folders: list[str],
+) -> list[tuple[str, bytes]]:
+    if not folders:
+        return processed_files
+    total_bytes = sum(len(data) for _, data in processed_files) * len(folders)
+    if total_bytes > MAX_FOLDER_OUTPUT_BYTES:
+        raise ValueError("Generated output exceeds the 250 MB multi-folder limit. Use fewer folders or smaller files.")
+    return [(f"{folder}/{Path(name).name}", data) for folder in folders for name, data in processed_files]
+
+
 def _download_response(
     processed_files: list[tuple[str, bytes]],
     errors: list[str],
@@ -146,13 +182,20 @@ def _download_response(
     error_filename: str,
     custom_name: str | None = None,
     append_custom_name: bool = False,
+    folder_names: list[str] | None = None,
 ) -> Response:
     if not processed_files:
         return _error_zip_response(
             errors or [empty_message],
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
             filename=error_filename,
         )
+
+    if folder_names:
+        try:
+            processed_files = _expand_output_folders(processed_files, folder_names)
+        except ValueError as exc:
+            return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY, filename=error_filename)
 
     if custom_name:
         stem = sanitize_stem(custom_name)
@@ -205,7 +248,10 @@ async def healthcheck() -> dict[str, str]:
 @app.post("/process")
 async def process(request: Request) -> Response:
     form = await request.form()
-    custom_name = _first_text(form, ("custom_name", "output_name"))
+    try:
+        custom_name, folder_names = _get_output_names(form)
+    except ValueError as exc:
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     placement_mode_raw = _first_text(form, ("placement_mode", "placement"))
     if not placement_mode_raw:
@@ -331,13 +377,17 @@ async def process(request: Request) -> Response:
         error_filename="dbse_processed_banners_errors.zip",
         custom_name=custom_name,
         append_custom_name=True,
+        folder_names=folder_names,
     )
 
 
 @app.post("/optimize")
 async def optimize(request: Request) -> Response:
     form = await request.form()
-    custom_name = _first_text(form, ("custom_name", "output_name"))
+    try:
+        custom_name, folder_names = _get_output_names(form)
+    except ValueError as exc:
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     banner_uploads = _collect_uploads(
         form,
@@ -384,13 +434,17 @@ async def optimize(request: Request) -> Response:
         zip_filename="dbse_optimized_banners.zip",
         error_filename="dbse_optimized_banners_errors.zip",
         custom_name=custom_name,
+        folder_names=folder_names,
     )
 
 
 @app.post("/resize")
 async def resize(request: Request) -> Response:
     form = await request.form()
-    custom_name = _first_text(form, ("custom_name", "output_name"))
+    try:
+        custom_name, folder_names = _get_output_names(form)
+    except ValueError as exc:
+        return _error_zip_response([str(exc)], status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     mode = normalize_resize_mode(_first_text(form, ("mode", "resize_mode")))
     if mode not in ALLOWED_RESIZE_MODES:
@@ -473,4 +527,5 @@ async def resize(request: Request) -> Response:
         zip_filename="dochase_adapted_creatives.zip",
         error_filename="dochase_adapted_creatives_errors.zip",
         custom_name=custom_name,
+        folder_names=folder_names,
     )
