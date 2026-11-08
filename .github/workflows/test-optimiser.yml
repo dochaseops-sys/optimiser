@@ -1,0 +1,25 @@
+name: Test Optimiser
+
+on:
+  push:
+    branches:
+      - feature/multi-custom-output-folders
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: dbse/requirements.txt
+      - name: Install dependencies
+        run: pip install -r dbse/requirements.txt
+      - name: Run tests
+        run: python -m pytest -q dbse/tests
