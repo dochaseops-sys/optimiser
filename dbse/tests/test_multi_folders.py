@@ -62,3 +62,14 @@ def test_more_than_one_hundred_names_rejected() -> None:
             files={"banners": ("banner.png", _png(), "image/png")},
         )
     assert response.status_code == 422
+
+
+def test_validation_error_is_explained_in_response_header() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/process",
+            data={"custom_names": "Folder_A\\nFolder_B", "placement_mode": "smart"},
+            files={"banners": ("banner.png", _png(), "image/png")},
+        )
+    assert response.status_code == 422
+    assert "No logo image was uploaded" in response.headers["x-processing-error"]
