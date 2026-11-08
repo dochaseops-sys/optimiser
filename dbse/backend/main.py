@@ -52,6 +52,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Processing-Error", "Content-Disposition"],
 )
 
 FRONTEND_INDEX = Path(__file__).resolve().parents[1] / "frontend" / "index.html"
@@ -100,7 +101,11 @@ def _error_zip_response(
     filename: str = "dbse_processed_banners_errors.zip",
 ) -> Response:
     zip_bytes = build_zip_bytes([], messages)
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    details = "; ".join(str(item) for item in messages)
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "X-Processing-Error": details[:500].replace("\\n", " "),
+    }
     return Response(
         content=zip_bytes,
         media_type="application/zip",
