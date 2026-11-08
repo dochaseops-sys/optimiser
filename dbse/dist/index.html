@@ -1811,6 +1811,11 @@
             return;
           }
 
+          const processingError = xhr.getResponseHeader('X-Processing-Error');
+          if (processingError) {
+            reject(new Error(processingError));
+            return;
+          }
           const reader = new FileReader();
           reader.onload = () => {
             let message = `Request failed with status ${xhr.status}.`;
