@@ -1092,9 +1092,8 @@
           </div>
           <div class="field-grid">
             <label class="field-label">
-              Custom File/Folder Names (Optional)
-              <textarea id="customNameInput" name="custom_names" rows="4" placeholder="One folder name per line, e.g. FP_EOY26_BR_L1-AVE19" aria-describedby="customNamesHelp"></textarea>
-              <span id="customNamesHelp" class="meta">Enter one name for a single output, or multiple lines to create a ZIP with a folder for each name (up to 100).</span>
+              Custom File/Folder Name (Optional)
+              <input id="customNameInput" name="custom_name" type="text" placeholder="e.g. dochase_banners" maxlength="100">
             </label>
           </div>
         </section>
@@ -1752,19 +1751,9 @@
         const formData = new FormData();
         state.banners.forEach((file) => formData.append(mode === 'adapt' ? 'images' : 'banners', file));
         
-        const customNames = [...new Set(customNameInput.value.split(/\r?\n/).map((name) => name.trim()).filter(Boolean))];
-        if (customNames.length > 100) {
-          reject(new Error('Maximum 100 folder names allowed.'));
-          return;
-        }
-        if (customNames.some((name) => name.length > 100)) {
-          reject(new Error('Folder names must be at most 100 characters.'));
-          return;
-        }
-        if (customNames.length > 1) {
-          formData.append('custom_names', customNames.join('\n'));
-        } else if (customNames.length === 1) {
-          formData.append('custom_name', customNames[0]);
+        const customName = customNameInput.value.trim();
+        if (customName) {
+          formData.append('custom_name', customName);
         }
         if (mode === 'stamp') {
           formData.append('logo', state.logo);
